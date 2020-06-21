@@ -12,8 +12,12 @@
 
 <p><a href="https://www.baidu.com" target="_blank" rel="noopener">链接</a></p>
 ]]></content>
+      <categories>
+        <category>Testing</category>
+      </categories>
       <tags>
         <tag>blog</tag>
+        <tag>test</tag>
       </tags>
   </entry>
 </search>
