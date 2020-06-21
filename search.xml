@@ -18,4 +18,15 @@
 <p>More info: <a href="https://hexo.io/docs/one-command-deployment.html" target="_blank" rel="noopener">Deployment</a></p>
 ]]></content>
   </entry>
+  <entry>
+    <title>第一次使用</title>
+    <url>/2020/06/21/%E7%AC%AC%E4%B8%80%E6%AC%A1%E4%BD%BF%E7%94%A8/</url>
+    <content><![CDATA[<h1 id="标题一"><a href="#标题一" class="headerlink" title="标题一"></a>标题一</h1><h2 id="标题二"><a href="#标题二" class="headerlink" title="标题二"></a>标题二</h2><h3 id="标题三"><a href="#标题三" class="headerlink" title="标题三"></a>标题三</h3><figure class="highlight java"><table><tr><td class="code"><pre><span class="line">System.out.println(<span class="string">"test for md"</span>)</span><br></pre></td></tr></table></figure>
+
+<p><a href="https://www.baidu.com" target="_blank" rel="noopener">链接</a></p>
+]]></content>
+      <tags>
+        <tag>blog</tag>
+      </tags>
+  </entry>
 </search>
