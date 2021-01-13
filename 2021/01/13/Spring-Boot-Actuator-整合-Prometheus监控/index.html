@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"baiyu128.github.io","root":"/","scheme":"Gemini","version":"8.0.0-rc.3","exturl":false,"sidebar":{"position":"left","display":"always","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="1.关于PrometheusPrometheus是一个根据应用的metrics来进行监控的开源工具。 Prometheus是由SoundCloud开发的开源监控报警系统和时序列数据库(TSDB)。Prometheus使用Go语言开发，是Google BorgMon监控系统的开源版本。2016年由Google发起Linux基金会旗下的原生云基金会(Cloud Native Computing Fou">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring Boot Actuator 整合 Prometheus监控">
+<meta property="og:url" content="https://baiyu128.github.io/2021/01/13/Spring-Boot-Actuator-%E6%95%B4%E5%90%88-Prometheus%E7%9B%91%E6%8E%A7/index.html">
+<meta property="og:site_name" content="BaiYu">
+<meta property="og:description" content="1.关于PrometheusPrometheus是一个根据应用的metrics来进行监控的开源工具。 Prometheus是由SoundCloud开发的开源监控报警系统和时序列数据库(TSDB)。Prometheus使用Go语言开发，是Google BorgMon监控系统的开源版本。2016年由Google发起Linux基金会旗下的原生云基金会(Cloud Native Computing Fou">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115806797-1750460125.png">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115354474-1478270204.png">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308120421903-117006715.png">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308120433999-2023519443.png">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115422639-2083020411.png">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115539209-1034408605.png">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115742521-1216773920.png">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115608797-630123242.png">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115620090-1083923378.png">
+<meta property="og:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115633809-1013780572.png">
+<meta property="og:image" content="https://user-gold-cdn.xitu.io/2019/10/22/16def11fa153fedf?imageView2/0/w/1280/h/960/format/webp/ignore-error/1">
+<meta property="article:published_time" content="2021-01-13T06:54:38.000Z">
+<meta property="article:modified_time" content="2021-01-13T07:06:42.733Z">
+<meta property="article:author" content="bai yu">
+<meta property="article:tag" content="springboot">
+<meta property="article:tag" content="prometheus">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115806797-1750460125.png">
+
+<link rel="canonical" href="https://baiyu128.github.io/2021/01/13/Spring-Boot-Actuator-%E6%95%B4%E5%90%88-Prometheus%E7%9B%91%E6%8E%A7/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Spring Boot Actuator 整合 Prometheus监控 | BaiYu</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?828ef564b6cd127ce936729bfd05afaf";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before, .use-motion .logo-line-after {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="BaiYu" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+        <span class="toggle-line toggle-line-first"></span>
+        <span class="toggle-line toggle-line-middle"></span>
+        <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line-before"></i>
+      <h1 class="site-title">BaiYu</h1>
+      <i class="logo-line-after"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">baiyu`s blog</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#1-关于Prometheus"><span class="nav-number">1.</span> <span class="nav-text">1.关于Prometheus</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Prometheus的特点"><span class="nav-number">1.1.</span> <span class="nav-text">Prometheus的特点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#架构图"><span class="nav-number">1.2.</span> <span class="nav-text">架构图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#基本原理"><span class="nav-number">1.3.</span> <span class="nav-text">基本原理</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#服务过程"><span class="nav-number">1.4.</span> <span class="nav-text">服务过程</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#三大套件"><span class="nav-number">1.5.</span> <span class="nav-text">三大套件</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#安装Prometheus-Server"><span class="nav-number">2.</span> <span class="nav-text">安装Prometheus Server</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#安装Grafana展示"><span class="nav-number">3.</span> <span class="nav-text">安装Grafana展示</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#创建项目"><span class="nav-number">3.0.1.</span> <span class="nav-text">创建项目</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#pom-xml"><span class="nav-number">3.0.1.1.</span> <span class="nav-text">pom.xml</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#application-yml"><span class="nav-number">3.0.1.2.</span> <span class="nav-text">application.yml</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#启动类"><span class="nav-number">3.0.1.3.</span> <span class="nav-text">启动类</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#配置-Prometheus-和-Grafana"><span class="nav-number">3.0.2.</span> <span class="nav-text">配置 Prometheus 和 Grafana</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Grafana配置"><span class="nav-number">4.</span> <span class="nav-text">Grafana配置</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="bai yu"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">bai yu</p>
+  <div class="site-description" itemprop="description">Don`t stop, keep moving</div>
+</div>
+
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">11</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">11</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/baiyu128" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;baiyu128" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:baixixi187@163.com" title="E-Mail → mailto:baixixi187@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+      Links
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://baixixi.xyz/" title="http:&#x2F;&#x2F;baixixi.xyz" rel="noopener" target="_blank">Blog</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://baiyu128.github.io/2021/01/13/Spring-Boot-Actuator-%E6%95%B4%E5%90%88-Prometheus%E7%9B%91%E6%8E%A7/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="bai yu">
+      <meta itemprop="description" content="Don`t stop, keep moving">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="BaiYu">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Spring Boot Actuator 整合 Prometheus监控
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-01-13 14:54:38 / 修改时间：15:06:42" itemprop="dateCreated datePublished" datetime="2021-01-13T14:54:38+08:00">2021-01-13</time>
+            </span>
+
+          
+            <span id="/2021/01/13/Spring-Boot-Actuator-%E6%95%B4%E5%90%88-Prometheus%E7%9B%91%E6%8E%A7/" class="post-meta-item leancloud_visitors" data-flag-title="Spring Boot Actuator 整合 Prometheus监控" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2021/01/13/Spring-Boot-Actuator-%E6%95%B4%E5%90%88-Prometheus%E7%9B%91%E6%8E%A7/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2021/01/13/Spring-Boot-Actuator-整合-Prometheus监控/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>5.6k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>5 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="1-关于Prometheus"><a href="#1-关于Prometheus" class="headerlink" title="1.关于Prometheus"></a>1.关于Prometheus</h1><p>Prometheus是一个根据应用的metrics来进行监控的开源工具。</p>
+<p>Prometheus是由SoundCloud开发的开源监控报警系统和时序列数据库(TSDB)。Prometheus使用Go语言开发，是Google BorgMon监控系统的开源版本。<br>2016年由Google发起Linux基金会旗下的原生云基金会(Cloud Native Computing Foundation), 将Prometheus纳入其下第二大开源项目。<br>Prometheus目前在开源社区相当活跃。<br>Prometheus和Heapster(Heapster是K8S的一个子项目，用于获取集群的性能数据。)相比功能更完善、更全面。Prometheus性能也足够支撑上万台规模的集群。</p>
+<a id="more"></a>
+
+<h2 id="Prometheus的特点"><a href="#Prometheus的特点" class="headerlink" title="Prometheus的特点"></a>Prometheus的特点</h2><ul>
+<li>多维度数据模型。</li>
+<li>灵活的查询语言。</li>
+<li>不依赖分布式存储，单个服务器节点是自主的。</li>
+<li>通过基于HTTP的pull方式采集时序数据。</li>
+<li>可以通过中间网关进行时序列数据推送。</li>
+<li>通过服务发现或者静态配置来发现目标服务对象。</li>
+<li>支持多种多样的图表和界面展示，比如Grafana等。</li>
+</ul>
+<p>官网地址：<a href="https://prometheus.io/" target="_blank" rel="noopener">https://prometheus.io/</a></p>
+<h2 id="架构图"><a href="#架构图" class="headerlink" title="架构图"></a>架构图</h2><p><img src="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115806797-1750460125.png" alt="img"><br><img src="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115354474-1478270204.png" alt="img"></p>
+<h2 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h2><p>Prometheus的基本原理是通过HTTP协议周期性抓取被监控组件的状态，任意组件只要提供对应的HTTP接口就可以接入监控。不需要任何SDK或者其他的集成过程。这样做非常适合做虚拟化环境监控系统，比如VM、Docker、Kubernetes等。输出被监控组件信息的HTTP接口被叫做exporter 。目前互联网公司常用的组件大部分都有exporter可以直接使用，比如Varnish、Haproxy、Nginx、MySQL、Linux系统信息(包括磁盘、内存、CPU、网络等等)。</p>
+<h2 id="服务过程"><a href="#服务过程" class="headerlink" title="服务过程"></a>服务过程</h2><ul>
+<li>Prometheus Daemon负责定时去目标上抓取metrics(指标)数据，每个抓取目标需要暴露一个http服务的接口给它定时抓取。Prometheus支持通过配置文件、文本文件、Zookeeper、Consul、DNS SRV Lookup等方式指定抓取目标。Prometheus采用PULL的方式进行监控，即服务器可以直接通过目标PULL数据或者间接地通过中间网关来Push数据。</li>
+<li>Prometheus在本地存储抓取的所有数据，并通过一定规则进行清理和整理数据，并把得到的结果存储到新的时间序列中。</li>
+<li>Prometheus通过PromQL和其他API可视化地展示收集的数据。Prometheus支持很多方式的图表可视化，例如Grafana、自带的Promdash以及自身提供的模版引擎等等。Prometheus还提供HTTP API的查询方式，自定义所需要的输出。</li>
+<li>PushGateway支持Client主动推送metrics到PushGateway，而Prometheus只是定时去Gateway上抓取数据。</li>
+<li>Alertmanager是独立于Prometheus的一个组件，可以支持Prometheus的查询语句，提供十分灵活的报警方式。</li>
+</ul>
+<h2 id="三大套件"><a href="#三大套件" class="headerlink" title="三大套件"></a>三大套件</h2><ul>
+<li>Server 主要负责数据采集和存储，提供PromQL查询语言的支持。</li>
+<li>Alertmanager 警告管理器，用来进行报警。</li>
+<li>Push Gateway 支持临时性Job主动推送指标的中间网关。</li>
+</ul>
+<h1 id="安装Prometheus-Server"><a href="#安装Prometheus-Server" class="headerlink" title="安装Prometheus Server"></a>安装Prometheus Server</h1><p>通过docker方式<br>首先创建一个配置文件/home/chenqionghe/test/prometheus/prometheus.yml<br>挂载之前需要改变文件权限为777，要不会引起修改宿主机上的文件内容不同步的问题</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">global:</span><br><span class="line">  scrape_interval:     15s # 默认抓取间隔, 15秒向目标抓取一次数据。</span><br><span class="line">  external_labels:</span><br><span class="line">    monitor: &#39;codelab-monitor&#39;</span><br><span class="line"># 这里表示抓取对象的配置</span><br><span class="line">scrape_configs:</span><br><span class="line">    #这个配置是表示在这个配置内的时间序例，每一条都会自动添加上这个&#123;job_name:&quot;prometheus&quot;&#125;的标签  - job_name: &#39;prometheus&#39;</span><br><span class="line">    scrape_interval: 5s # 重写了全局抓取间隔时间，由15秒重写成5秒</span><br><span class="line">    static_configs:</span><br><span class="line">      - targets: [&#39;localhost:9090&#39;]</span><br></pre></td></tr></table></figure>
+
+<p>运行</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker rm -f prometheus</span><br><span class="line">docker run --name&#x3D;prometheus -d \</span><br><span class="line">-p 9090:9090 \</span><br><span class="line">-v &#x2F;home&#x2F;chenqionghe&#x2F;promethues&#x2F;server&#x2F;prometheus.yml:&#x2F;etc&#x2F;prometheus&#x2F;prometheus.yml \</span><br><span class="line">-v &#x2F;home&#x2F;chenqionghe&#x2F;promethues&#x2F;server&#x2F;rules.yml:&#x2F;etc&#x2F;prometheus&#x2F;rules.yml \</span><br><span class="line">prom&#x2F;prometheus:v2.7.2 \</span><br><span class="line">--config.file&#x3D;&#x2F;etc&#x2F;prometheus&#x2F;prometheus.yml \</span><br><span class="line">--web.enable-lifecycle</span><br></pre></td></tr></table></figure>
+
+<p>启动时加上–web.enable-lifecycle启用远程热加载配置文件<br>调用指令是curl -X POST <a href="http://localhost:9090/-/reload" target="_blank" rel="noopener">http://localhost:9090/-/reload</a></p>
+<p>访问<a href="http://10.211.55.25:9090" target="_blank" rel="noopener">http://10.211.55.25:9090</a><br>我们会看到如下l界面<br><img src="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308120421903-117006715.png" alt="img"></p>
+<p>访问<a href="http://10.211.55.25:9090/metrics" target="_blank" rel="noopener">http://10.211.55.25:9090/metrics</a><br><img src="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308120433999-2023519443.png" alt="img"></p>
+<p>我们配置了9090端口，默认prometheus会抓取自己的/metrics接口<br>在Graph选项已经可以看到监控的数据<br><img src="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115422639-2083020411.png" alt="img"></p>
+<h1 id="安装Grafana展示"><a href="#安装Grafana展示" class="headerlink" title="安装Grafana展示"></a>安装Grafana展示</h1><p>Grafana是用于可视化大型测量数据的开源程序，它提供了强大和优雅的方式去创建、共享、浏览数据。<br>Dashboard中显示了你不同metric数据源中的数据。<br>Grafana最常用于因特网基础设施和应用分析，但在其他领域也有用到，比如：工业传感器、家庭自动化、过程控制等等。<br>Grafana支持热插拔控制面板和可扩展的数据源，目前已经支持Graphite、InfluxDB、OpenTSDB、Elasticsearch、Prometheus等。</p>
+<p>我们使用docker安装</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker run -d -p 3000:3000 --name grafana grafana&#x2F;grafana</span><br></pre></td></tr></table></figure>
+
+<p>默认登录账户和密码都是admin，进入后界面如下<br><img src="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115539209-1034408605.png" alt="img"><br>我们添加一个数据源<br><img src="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115742521-1216773920.png" alt="img"><br>把Prometheus的地址填上<br><img src="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115608797-630123242.png" alt="img"><br>导入prometheus的模板<br><img src="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115620090-1083923378.png" alt="img"><br>打开左上角选择已经导入的模板会看到已经有各种图<br><img src="https://img2018.cnblogs.com/blog/662544/201903/662544-20190308115633809-1013780572.png" alt="img"></p>
+<h3 id="创建项目"><a href="#创建项目" class="headerlink" title="创建项目"></a>创建项目</h3><p>创建用于测试的 Spring Boot 项目，主要代码如下。</p>
+<h4 id="pom-xml"><a href="#pom-xml" class="headerlink" title="pom.xml"></a>pom.xml</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.springframework.boot&lt;&#x2F;groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-starter-actuator&lt;&#x2F;artifactId&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.springframework.boot&lt;&#x2F;groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-starter-web&lt;&#x2F;artifactId&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;io.micrometer&lt;&#x2F;groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;micrometer-registry-prometheus&lt;&#x2F;artifactId&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br><span class="line"></span><br><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.springframework.boot&lt;&#x2F;groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-starter-test&lt;&#x2F;artifactId&gt;</span><br><span class="line">    &lt;scope&gt;test&lt;&#x2F;scope&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
+
+<h4 id="application-yml"><a href="#application-yml" class="headerlink" title="application.yml"></a>application.yml</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">management:</span><br><span class="line">  endpoints:</span><br><span class="line">    web:</span><br><span class="line">      exposure:</span><br><span class="line">        include: &#39;*&#39;</span><br><span class="line"></span><br><span class="line">  endpoint:</span><br><span class="line">    health:</span><br><span class="line">      show-details: always</span><br><span class="line"></span><br><span class="line">  metrics:</span><br><span class="line">    tags:</span><br><span class="line">      application: actuator-demo</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>management.endpoints.web.exposure.include：大多数actuator的端口都不会通过http公开，* 代表公开所有这些端点。对于生产环境，应该仔细选择要公开的端点。</li>
+<li>management.metrics.tags.application：为应用设置 tag ，方便区分不同的应用。</li>
+</ul>
+<h4 id="启动类"><a href="#启动类" class="headerlink" title="启动类"></a>启动类</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">@SpringBootApplication</span><br><span class="line">@RestController</span><br><span class="line">public class SpringbootActuatorPrometheusDemoApplication &#123;</span><br><span class="line"></span><br><span class="line">    public static void main(String[] args) &#123;</span><br><span class="line">        SpringApplication.run(SpringbootActuatorPrometheusDemoApplication.class, args);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @RequestMapping(value &#x3D; &quot;&#x2F;hello&quot;)</span><br><span class="line">    public String  sayHello() &#123;</span><br><span class="line">        for (int i &#x3D; 1 ; i &lt;&#x3D; 10 ; i++) &#123;</span><br><span class="line">            Thread t &#x3D; new Thread(() -&gt; &#123;</span><br><span class="line">                try &#123;</span><br><span class="line">                    Thread.sleep(5000);</span><br><span class="line">                &#125; catch (InterruptedException e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125; , &quot;HelloThread - &quot; + i);</span><br><span class="line">            t.start();</span><br><span class="line">        &#125;</span><br><span class="line">        return &quot;ok&quot;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    &#x2F;**</span><br><span class="line">    @Bean</span><br><span class="line">    MeterRegistryCustomizer&lt;MeterRegistry&gt; metricsCommonTags() &#123;</span><br><span class="line">        return registry -&gt; registry.config().commonTags(&quot;application&quot;, &quot;springboot-actuator-prometheus-demo&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">    *&#x2F;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置-Prometheus-和-Grafana"><a href="#配置-Prometheus-和-Grafana" class="headerlink" title="配置 Prometheus 和 Grafana"></a>配置 Prometheus 和 Grafana</h3><p>在 prometheus.yml 中添加针对该 Spring Boot 应用 的监控 job</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">- job_name: &#39;actuator-demo&#39;</span><br><span class="line">    metrics_path: &#39;&#x2F;prometheus&#39;</span><br><span class="line">    static_configs:</span><br><span class="line">    - targets: [&#39;172.16.2.204:8080&#39;]</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
+
+<p>运行 Prometheus 和 Grafana：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">docker start prometheus grafana</span><br><span class="line">复制代码</span><br></pre></td></tr></table></figure>
+
+<p>访问 Prometheus UI <a href="http://172.16.2.101:9090" target="_blank" rel="noopener">http://172.16.2.101:9090</a> ，查看 targets ，可以看到 job 处于 UP 状态，说明配置成功了。</p>
+<p><img src="https://user-gold-cdn.xitu.io/2019/10/22/16def11fa153fedf?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" alt="img"></p>
+<p>启动Prometheus，浏览器访问，查看Prometheus页面，如图所示。</p>
+<p><a href="https://user-gold-cdn.xitu.io/2019/3/7/16953f3ddc434806?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" target="_blank" rel="noopener">img</a></p>
+<p>点击如图所示位置，可以查看Prometheus监控的应用。</p>
+<p><a href="https://user-gold-cdn.xitu.io/2019/3/7/16953f44f8be877f?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" target="_blank" rel="noopener">img</a></p>
+<p>列表中UP的页面为存活的实例，如图所示。</p>
+<p><a href="https://user-gold-cdn.xitu.io/2019/3/7/16953f5598c8b806?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" target="_blank" rel="noopener">img</a></p>
+<p>也可以查看很多指数，如下所示。</p>
+<p><a href="https://user-gold-cdn.xitu.io/2019/3/7/16953f64e6b87b64?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" target="_blank" rel="noopener">img</a></p>
+<p>Grafana UI <a href="http://172.16.2.101:3000" target="_blank" rel="noopener">http://172.16.2.101:3000</a>，通过Grafana的 <strong>+</strong>  图标导入(Import) JVM (Micrometer) dashboard：</p>
+<ul>
+<li>grafana id = 4701</li>
+<li>注意选中prometheus数据源</li>
+</ul>
+<p>查看JVM (Micormeter) dashboard：</p>
+<p><a href="https://user-gold-cdn.xitu.io/2019/10/22/16def122dffc19e4?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" target="_blank" rel="noopener">img</a></p>
+<h1 id="Grafana配置"><a href="#Grafana配置" class="headerlink" title="Grafana配置"></a>Grafana配置</h1><p>启动Grafana，配置Prometheus数据源，这里以ID是4701的Doshboard为例（地址：<a href="https://grafana.com/dashboards/4701" target="_blank" rel="noopener">grafana.com/dashboards/…</a>）如图。</p>
+<p><a href="https://user-gold-cdn.xitu.io/2019/3/7/16953f807cb5cf43?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" target="_blank" rel="noopener">img</a></p>
+<p>在Grafana内点击如图所示import按钮</p>
+<p><a href="https://user-gold-cdn.xitu.io/2019/3/7/16953f8a3482a975?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" target="_blank" rel="noopener">img</a></p>
+<p>在如图所示位置填写4701，然后点击load。</p>
+<p><a href="https://user-gold-cdn.xitu.io/2019/3/7/16953fb4412c6d14?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" target="_blank" rel="noopener">img</a></p>
+<p>接下来导入Doshboard。</p>
+<p><a href="https://user-gold-cdn.xitu.io/2019/3/7/16953fba06ed9339?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" target="_blank" rel="noopener">img</a></p>
+<p>导入后就可以看到我们的SpringBoot项目对应的指标图表了，如图。</p>
+<p><a href="https://user-gold-cdn.xitu.io/2019/3/7/16953fc3c0368962?imageView2/0/w/1280/h/960/format/webp/ignore-error/1" target="_blank" rel="noopener">img</a></p>
+<p>可以看到应用的 JVM 的 堆栈、 线程、 IO 等等信息。</p>
+
+    </div>
+
+    
+    
+    
+        <div class="reward-container">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    赞赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechatpay.png" alt="bai yu 微信支付">
+        <p>微信支付</p>
+      </div>
+      
+      <div style="display: inline-block;">
+        <img src="/images/alipay.png" alt="bai yu 支付宝">
+        <p>支付宝</p>
+      </div>
+
+  </div>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/springboot/" rel="tag"># springboot</a>
+              <a href="/tags/prometheus/" rel="tag"># prometheus</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/01/13/%E4%BD%BF%E7%94%A8ELK%E6%90%AD%E5%BB%BA%E6%97%A5%E8%AE%B0%E7%B3%BB%E7%BB%9F/" rel="prev" title="使用ELK搭建日记系统">
+      <i class="fa fa-chevron-left"></i> 使用ELK搭建日记系统
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        <div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">bai yu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">67k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:01</span>
+</div>
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">浙xxxx </a>
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              Counter('post', '/classes/Counter', { title, url, time: 1 })
+                .then(response => response.json())
+                .then(() => {
+                  leancloudSelector(url).innerText = 1;
+                })
+                .catch(error => {
+                  console.error('Failed to create', error);
+                });
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"IiFg7l57TOdHscSMUCMeUlw2-gzGzoHsz","app_key":"qpwIlyhFnXE257b3hxaADe4I","server_url":null,"security":false};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://baiyu128.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://baiyu128.github.io/2021/01/13/Spring-Boot-Actuator-%E6%95%B4%E5%90%88-Prometheus%E7%9B%91%E6%8E%A7/";
+    this.page.identifier = "2021/01/13/Spring-Boot-Actuator-整合-Prometheus监控/";
+    this.page.title = "Spring Boot Actuator 整合 Prometheus监控";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://baiyu128.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
