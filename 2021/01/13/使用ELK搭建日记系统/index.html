@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"baiyu128.github.io","root":"/","scheme":"Gemini","version":"8.0.0-rc.3","exturl":false,"sidebar":{"position":"left","display":"always","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="简介搭建日志系统的目的主要为了在生产环境下能够方便的查看多个项目的实时日记，增加开发效率。特别是在线上多台服务器部署时候，不用在登录服务器进入项目目录，通过 tail -f 等命令来查看日记了。 目标 使用 ELK (Elasticsearch、Logstash、Kibana) 构建日记系统。 实现多台服务器收集 Laravel 应用日记与 Nginx 日记。 Kibana 报表的展示日记信息。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用ELK搭建日记系统">
+<meta property="og:url" content="https://baiyu128.github.io/2021/01/13/%E4%BD%BF%E7%94%A8ELK%E6%90%AD%E5%BB%BA%E6%97%A5%E8%AE%B0%E7%B3%BB%E7%BB%9F/index.html">
+<meta property="og:site_name" content="BaiYu">
+<meta property="og:description" content="简介搭建日志系统的目的主要为了在生产环境下能够方便的查看多个项目的实时日记，增加开发效率。特别是在线上多台服务器部署时候，不用在登录服务器进入项目目录，通过 tail -f 等命令来查看日记了。 目标 使用 ELK (Elasticsearch、Logstash、Kibana) 构建日记系统。 实现多台服务器收集 Laravel 应用日记与 Nginx 日记。 Kibana 报表的展示日记信息。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://cdn.learnku.com/uploads/images/202006/05/14921/bDzHC1jtK3.png!large">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/2279594-b10bc217400bbe0b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1089/format/webp">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/2279594-5e974fc79f61ae4c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/802/format/webp">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/2279594-2359e59308d9d787.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1200/format/webp">
+<meta property="og:image" content="https://upload-images.jianshu.io/upload_images/2279594-8338b551bdcbcd10.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1200/format/webp">
+<meta property="article:published_time" content="2021-01-13T06:17:28.000Z">
+<meta property="article:modified_time" content="2021-01-13T06:33:14.916Z">
+<meta property="article:author" content="bai yu">
+<meta property="article:tag" content="Elasticsearch">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://cdn.learnku.com/uploads/images/202006/05/14921/bDzHC1jtK3.png!large">
+
+<link rel="canonical" href="https://baiyu128.github.io/2021/01/13/%E4%BD%BF%E7%94%A8ELK%E6%90%AD%E5%BB%BA%E6%97%A5%E8%AE%B0%E7%B3%BB%E7%BB%9F/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>使用ELK搭建日记系统 | BaiYu</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?828ef564b6cd127ce936729bfd05afaf";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before, .use-motion .logo-line-after {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="BaiYu" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+        <span class="toggle-line toggle-line-first"></span>
+        <span class="toggle-line toggle-line-middle"></span>
+        <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line-before"></i>
+      <h1 class="site-title">BaiYu</h1>
+      <i class="logo-line-after"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">baiyu`s blog</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#简介"><span class="nav-number">1.</span> <span class="nav-text">简介</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#目标"><span class="nav-number">2.</span> <span class="nav-text">目标</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#架构"><span class="nav-number">3.</span> <span class="nav-text">架构</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#配置"><span class="nav-number">4.</span> <span class="nav-text">配置</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#elasticsearch安装"><span class="nav-number">4.1.</span> <span class="nav-text">elasticsearch安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#kibana"><span class="nav-number">4.2.</span> <span class="nav-text">kibana</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#logstash"><span class="nav-number">4.3.</span> <span class="nav-text">logstash</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#filebeat"><span class="nav-number">4.4.</span> <span class="nav-text">filebeat</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#logstash安装"><span class="nav-number">4.5.</span> <span class="nav-text">logstash安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#stash第一个事件"><span class="nav-number">4.6.</span> <span class="nav-text">stash第一个事件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#配置logstash输出到elasticsearch"><span class="nav-number">4.7.</span> <span class="nav-text">配置logstash输出到elasticsearch</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#logstash结合filebeat"><span class="nav-number">4.8.</span> <span class="nav-text">logstash结合filebeat</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Spring-Boot整合ELK-Filebear构建日志系统"><span class="nav-number">4.9.</span> <span class="nav-text">Spring Boot整合ELK+Filebear构建日志系统</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="bai yu"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">bai yu</p>
+  <div class="site-description" itemprop="description">Don`t stop, keep moving</div>
+</div>
+
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">10</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/baiyu128" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;baiyu128" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:baixixi187@163.com" title="E-Mail → mailto:baixixi187@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+      Links
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://baixixi.xyz/" title="http:&#x2F;&#x2F;baixixi.xyz" rel="noopener" target="_blank">Blog</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://baiyu128.github.io/2021/01/13/%E4%BD%BF%E7%94%A8ELK%E6%90%AD%E5%BB%BA%E6%97%A5%E8%AE%B0%E7%B3%BB%E7%BB%9F/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="bai yu">
+      <meta itemprop="description" content="Don`t stop, keep moving">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="BaiYu">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          使用ELK搭建日记系统
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2021-01-13 14:17:28 / 修改时间：14:33:14" itemprop="dateCreated datePublished" datetime="2021-01-13T14:17:28+08:00">2021-01-13</time>
+            </span>
+
+          
+            <span id="/2021/01/13/%E4%BD%BF%E7%94%A8ELK%E6%90%AD%E5%BB%BA%E6%97%A5%E8%AE%B0%E7%B3%BB%E7%BB%9F/" class="post-meta-item leancloud_visitors" data-flag-title="使用ELK搭建日记系统" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2021/01/13/%E4%BD%BF%E7%94%A8ELK%E6%90%AD%E5%BB%BA%E6%97%A5%E8%AE%B0%E7%B3%BB%E7%BB%9F/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2021/01/13/使用ELK搭建日记系统/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>6.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>6 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>搭建日志系统的目的主要为了在生产环境下能够方便的查看多个项目的实时日记，增加开发效率。特别是在线上多台服务器部署时候，不用在登录服务器进入项目目录，通过 tail -f 等命令来查看日记了。</p>
+<h1 id="目标"><a href="#目标" class="headerlink" title="目标"></a>目标</h1><ul>
+<li>使用 ELK (Elasticsearch、Logstash、Kibana) 构建日记系统。</li>
+<li>实现多台服务器收集 Laravel 应用日记与 Nginx 日记。</li>
+<li>Kibana 报表的展示日记信息。</li>
+</ul>
+<h1 id="架构"><a href="#架构" class="headerlink" title="架构"></a>架构</h1><p>Filebeat + Redis + ELK ( Elasticsearch、Logstash、Kibana )</p>
+<p><img src="https://cdn.learnku.com/uploads/images/202006/05/14921/bDzHC1jtK3.png!large" alt=""></p>
+<ol>
+<li>Filebeat 从服务器取日志文件并存储到 Redis 中。</li>
+<li>Logstash 从 Redis 中取出日志记录，解析处理后并转发到 Elasticsearch 中。</li>
+<li>Kibana 从 Elasticsearch 中读取数据并展示。</li>
+</ol>
+<h1 id="配置"><a href="#配置" class="headerlink" title="配置"></a>配置</h1><h2 id="elasticsearch安装"><a href="#elasticsearch安装" class="headerlink" title="elasticsearch安装"></a>elasticsearch安装</h2><p>1.安装</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install elasticsearch</span><br></pre></td></tr></table></figure>
+
+<p><em>安装目录：/usr/local/Cellar/elasticsearch/{elasticsearch-version}/</em></p>
+<p><em>日志目录：/usr/local/var/log/elasticsearch/</em></p>
+<p><em>插件目录：/usr/local/var/elasticsearch/plugins/</em></p>
+<p><em>配置目录：/usr/local/etc/elasticsearch/</em></p>
+<p>2.启动</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew services start elasticsearch</span><br></pre></td></tr></table></figure>
+
+<p>首次启动，默认的端口号是9200，用户名是elastic，密码changeme</p>
+<h2 id="kibana"><a href="#kibana" class="headerlink" title="kibana"></a>kibana</h2><p>1.安装</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install kibana</span><br></pre></td></tr></table></figure>
+
+<p><em>安装目录：/usr/local/Cellar/kibana/{kibana-version}/</em></p>
+<p><em>配置目录：/usr/local/etc/kibana/</em></p>
+<p>2.修改配置文件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">vi &#x2F;usr&#x2F;local&#x2F;etc&#x2F;kibana&#x2F;kibana.yml</span><br><span class="line"></span><br><span class="line">erver.name: kibana</span><br><span class="line">server.port: 5601</span><br><span class="line">server.host: &quot;localhost&quot;</span><br><span class="line">elasticsearch.hosts: &quot;http:&#x2F;&#x2F;localhost:9200&quot;</span><br><span class="line">elasticsearch.username: &quot;elastic&quot;</span><br><span class="line">elasticsearch.password: &quot;changeme&quot;</span><br><span class="line">i18n.locale: &quot;zh-CN&quot;</span><br></pre></td></tr></table></figure>
+
+<p>3.启动</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew services start kibana</span><br></pre></td></tr></table></figure>
+
+<p>首次启动，默认端口号是5601，打开浏览器访问<code>http://localhost:5601</code>访问kibana管理页面，会弹框要求输入用户名密码，输入elastic和123456即可。</p>
+<h2 id="logstash"><a href="#logstash" class="headerlink" title="logstash"></a>logstash</h2><p>1.安装</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install logstash</span><br></pre></td></tr></table></figure>
+
+<p><em>安装目录：/usr/local/Cellar/logstash/{logstash-version}/</em></p>
+<p>2.安装插件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cd &#x2F;usr&#x2F;local&#x2F;Cellar&#x2F;logstash&#x2F;&#123;logstash-version&#125;&#x2F;</span><br><span class="line">.&#x2F;logstash-plugin install logstash-input-jdbc</span><br></pre></td></tr></table></figure>
+
+<p>3.编辑配置文件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">vi jdbc.conf</span><br><span class="line">input &#123;</span><br><span class="line">        jdbc &#123;</span><br><span class="line">                jdbc_driver_library &#x3D;&gt; &quot;mysql连接jar包&quot;</span><br><span class="line">                jdbc_driver_class &#x3D;&gt; &quot;com.mysql.jdbc.Driver&quot;</span><br><span class="line">                jdbc_connection_string &#x3D;&gt; &quot;jdbc:mysql:&#x2F;&#x2F;数据库地址及数据库?useUnicode&#x3D;true&amp;characterEncoding&#x3D;utf8&amp;useSSL&#x3D;false&quot;</span><br><span class="line">                jdbc_user &#x3D;&gt; &quot;数据库账号&quot;</span><br><span class="line">                jdbc_password &#x3D;&gt; &quot;数据库密码&quot;</span><br><span class="line">                schedule &#x3D;&gt; &quot;* * * * *&quot;</span><br><span class="line">                jdbc_paging_enabled &#x3D;&gt; true</span><br><span class="line">                statement &#x3D;&gt; &quot;select * from tb_item&quot;</span><br><span class="line">        &#125;</span><br><span class="line">        jdbc &#123;</span><br><span class="line">                jdbc_driver_library &#x3D;&gt; &quot;mysql连接jar包&quot;</span><br><span class="line">                jdbc_driver_class &#x3D;&gt; &quot;com.mysql.jdbc.Driver&quot;</span><br><span class="line">                jdbc_connection_string &#x3D;&gt; &quot;jdbc:mysql:&#x2F;&#x2F;数据库地址及数据库?useUnicode&#x3D;true&amp;characterEncoding&#x3D;utf8&amp;useSSL&#x3D;false&quot;</span><br><span class="line">                jdbc_user &#x3D;&gt; &quot;数据库账号&quot;</span><br><span class="line">                jdbc_password &#x3D;&gt; &quot;数据库密码&quot;</span><br><span class="line">                schedule &#x3D;&gt; &quot;* * * * *&quot;</span><br><span class="line">                jdbc_paging_enabled &#x3D;&gt; true</span><br><span class="line">                #执行语句</span><br><span class="line">                statement &#x3D;&gt; &quot;select * from tb_item where updated &gt; :sql_last_value&quot;</span><br><span class="line">                #使用数据库表的列</span><br><span class="line">                use_column_value &#x3D;&gt; true</span><br><span class="line">                tracking_column &#x3D;&gt; &quot;updated&quot;</span><br><span class="line">                tracking_column_type &#x3D;&gt; &quot;timestamp&quot;</span><br><span class="line">                #这是存放上一次执行之后id的值</span><br><span class="line">                last_run_metadata_path &#x3D;&gt; &quot;lastUpdated.txt&quot;</span><br><span class="line">        &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">output &#123;</span><br><span class="line">        #输入es地址</span><br><span class="line">        elasticsearch &#123;</span><br><span class="line">            hosts &#x3D;&gt; [&quot;172.26.43.37:9200&quot;]</span><br><span class="line">            # 索引名字，必须小写</span><br><span class="line">            index &#x3D;&gt; &quot;tb_item&quot;</span><br><span class="line">            # 数据唯一索引</span><br><span class="line">            document_id &#x3D;&gt; &quot;%&#123;id&#125;&quot;</span><br><span class="line">        &#125;</span><br><span class="line">        stdout &#123; codec &#x3D;&gt; json_lines &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>4.执行脚本</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">.&#x2F;logstash -f jdbc.conf</span><br></pre></td></tr></table></figure>
+
+<h2 id="filebeat"><a href="#filebeat" class="headerlink" title="filebeat"></a>filebeat</h2><p>安装</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">brew install filebeat</span><br></pre></td></tr></table></figure>
+
+<p><em>安装目录：/usr/local/Cellar/filebeat/{filebeat-version}/</em></p>
+<p><em>配置目录：/usr/local/etc/filebeat/</em></p>
+<p><em>缓存目录：/usr/local/var/lib/filebeat/</em></p>
+<h2 id="logstash安装"><a href="#logstash安装" class="headerlink" title="logstash安装"></a>logstash安装</h2><p>Logstash的安装脚本如下：</p>
+<figure class="highlight ruby"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># 下载logstash的压缩包</span></span><br><span class="line">wget <span class="symbol">https:</span>/<span class="regexp">/artifacts.elastic.co/downloads</span><span class="regexp">/logstash/logstash</span>-<span class="number">7.2</span>.<span class="number">0</span>.zip</span><br><span class="line"><span class="comment"># 解压压缩包 </span></span><br><span class="line">upzip logstash-<span class="number">7.2</span>.<span class="number">0</span>.zip</span><br><span class="line"><span class="comment"># 将解压的包移到/usr/share目录下</span></span><br><span class="line">mv logstash-<span class="number">7.2</span>.<span class="number">0</span> /usr/share/</span><br><span class="line">cd /usr/share/logstash-<span class="number">7.2</span>.<span class="number">0</span>/</span><br></pre></td></tr></table></figure>
+
+<h2 id="stash第一个事件"><a href="#stash第一个事件" class="headerlink" title="stash第一个事件"></a>stash第一个事件</h2><p>Logstash管道有两个必需元素，输入和输出，以及一个可选元素filter。 输入插件使用来自源的数据，过滤器插件在您指定时修改数据，输出插件将数据写入目标。<br> 如下如</p>
+<p><img src="https:////upload-images.jianshu.io/upload_images/2279594-b10bc217400bbe0b.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1089/format/webp" alt="img"></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">datasource -&gt; [logstash pipeline](inputs-filter-outputs) -&gt; elasticsearch</span><br></pre></td></tr></table></figure>
+
+
+
+<p>要测试Logstash安装成功，运行最基本的Logstash管道。 执行以下的命令</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">bin/logstash -e <span class="string">'input &#123; stdin &#123; &#125; &#125; output &#123; stdout &#123;&#125; &#125;'</span></span><br></pre></td></tr></table></figure>
+
+<p>-e标志使您可以直接从命令行指定配置。 通过在命令行指定配置，可以快速测试配置，而无需在迭代之间编辑文件。 示例中的管道从标准输入stdin获取输入，并以结构化格式将输入移动到标准输出stdout。<br> 启动Logstash后，等到看到“Pipeline main started”，然后在命令提示符下输入hello world，显示的如下：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">hello world</span><br><span class="line">&#123;</span><br><span class="line">          <span class="string">"host"</span> =&gt; <span class="string">"VM_0_13_centos"</span>,</span><br><span class="line">       <span class="string">"message"</span> =&gt; <span class="string">"hello world"</span>,</span><br><span class="line">      <span class="string">"@version"</span> =&gt; <span class="string">"1"</span>,</span><br><span class="line">    <span class="string">"@timestamp"</span> =&gt; <span class="number">2019</span><span class="number">-07</span><span class="number">-02</span>T06:<span class="number">26</span>:<span class="number">28.684</span>Z</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="配置logstash输出到elasticsearch"><a href="#配置logstash输出到elasticsearch" class="headerlink" title="配置logstash输出到elasticsearch"></a>配置logstash输出到elasticsearch</h2><p>修改logstash的安装目录的config目录下的logstash-sample.conf文件，配置如下：</p>
+<figure class="highlight dart"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">input &#123;</span><br><span class="line">  beats &#123;</span><br><span class="line">    port =&gt; <span class="number">5044</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">output &#123;</span><br><span class="line">  elasticsearch &#123;</span><br><span class="line">    hosts =&gt; [<span class="string">"http://10.0.0.5:9200"</span>, <span class="string">"http://10.0.0.13:9200"</span>, <span class="string">"http://10.0.0.17:9200"</span>]</span><br><span class="line">    index =&gt; <span class="string">"%&#123;[@metadata][beat]&#125;-%&#123;[@metadata][version]&#125;-%&#123;+YYYY.MM.dd&#125;"</span></span><br><span class="line">    #user =&gt; <span class="string">"elastic"</span></span><br><span class="line">    #password =&gt; <span class="string">"changeme"</span></span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在上面的配置中，输入数据源为filebeat，关于filebeat见下一小节，输出源为elasticsearch。更多的输入和输出源的配置见官网<a href="https://links.jianshu.com/go?to=https%3A%2F%2Fwww.elastic.co%2Fguide%2Fen%2Flogstash%2Fcurrent%2Fadvanced-pipeline.html" target="_blank" rel="noopener">https://www.elastic.co/guide/en/logstash/current/advanced-pipeline.html</a></p>
+<p>用下面的命令从后台启动logstash：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./bin/logstash -f config/logstash-sample.conf &gt;logstash.<span class="built_in">log</span>  <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br></pre></td></tr></table></figure>
+
+<h2 id="logstash结合filebeat"><a href="#logstash结合filebeat" class="headerlink" title="logstash结合filebeat"></a>logstash结合filebeat</h2><p>在分布式系统中，一台主机可能有多个应用，应用将日志输出到主机的指定目录，这时由logstash来搬运日志并解析日志，然后输出到elasticsearch上。由于于<br> logstash是java应用，解析日志是非的消耗cpu和内存，logstash安装在应用部署的机器上显得非常的笨重。最常见的做法是用filebeat部署在应用的机器上，logstash单独部署，然后由<br> filebeat将日志输出给logstash解析，解析完由logstash再传给elasticsearch。</p>
+<p>下载filebeat，下载命令如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"> wget  https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-7.2.0-linux-x86_64.tar.gz</span><br><span class="line">tar -zxvf filebeat-7.2.0-linux-x86_64.tar.gz</span><br><span class="line">mv filebeat-7.2.0-linux-x86_64 /usr/share/</span><br><span class="line"><span class="built_in">cd</span> /usr/share/filebeat-7.2.0-linux-x86_64/</span><br></pre></td></tr></table></figure>
+
+<p>vim filebeat.yml修改配置：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">filebeat.inputs:</span><br><span class="line">- <span class="built_in">type</span>: <span class="built_in">log</span></span><br><span class="line">  enabled: <span class="literal">true</span></span><br><span class="line">  paths:</span><br><span class="line">    - /var/<span class="built_in">log</span>/service-hi.log</span><br><span class="line">output.logstash:</span><br><span class="line">  hosts: [<span class="string">"192.168.1.4:5044"</span>]</span><br></pre></td></tr></table></figure>
+
+<p>主要配置的是日志的搜集目录为/var/log/service-hi.log，这个目录是应用service-hi输出日志的文件。输出到logstsh的地址为192.168.1.4</p>
+<p>启动filebeat，执行一下命令：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">sudo chown root filebeat.yml</span><br><span class="line">sudo ./filebeat -e &gt;filebeat.<span class="built_in">log</span> <span class="number">2</span>&gt;&amp;<span class="number">1</span> &amp;</span><br></pre></td></tr></table></figure>
+
+<h2 id="Spring-Boot整合ELK-Filebear构建日志系统"><a href="#Spring-Boot整合ELK-Filebear构建日志系统" class="headerlink" title="Spring Boot整合ELK+Filebear构建日志系统"></a>Spring Boot整合ELK+Filebear构建日志系统</h2><p>在SpringBoot应用service-hi，定时输出日志如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@SpringBootApplication</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">ElkTestApplication</span> </span>&#123;</span><br><span class="line">    Logger logger= LoggerFactory.getLogger(ElkTestApplication<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">    Random random=<span class="keyword">new</span> Random(<span class="number">10000</span>);</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> </span>&#123;</span><br><span class="line">        SpringApplication.run(ElkTestApplication<span class="class">.<span class="keyword">class</span>, <span class="title">args</span>)</span>;</span><br><span class="line">        <span class="keyword">new</span> ElkTestApplication().initTask();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">initTask</span><span class="params">()</span></span>&#123;</span><br><span class="line">        Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(<span class="keyword">new</span> Runnable() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">run</span><span class="params">()</span> </span>&#123;</span><br><span class="line">                logger.info(<span class="string">"seed:"</span>+random.nextInt(<span class="number">999999</span>));</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,<span class="number">100</span>,<span class="number">100</span>, TimeUnit.MILLISECONDS);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>然后在部署了filebeat的机器上部署该应用，应用的输出文件为/var/log/service-hi.log，应用启动命令如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">nohup java -jar  elk-test<span class="number">-0.0</span><span class="number">.1</span>-SNAPSHOT.jar &gt; /var/<span class="built_in">log</span>/service-hi.<span class="built_in">log</span> <span class="number">2</span>&gt;&amp;<span class="number">1</span>  &amp;</span><br></pre></td></tr></table></figure>
+
+<p>应用启动成功后日志输出如下：</p>
+<figure class="highlight css"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">2019<span class="selector-tag">-07-02</span> 17<span class="selector-pseudo">:13</span><span class="selector-pseudo">:13.530</span>  <span class="selector-tag">INFO</span> 31579 <span class="selector-tag">---</span> <span class="selector-attr">[pool-1-thread-1]</span> <span class="selector-tag">com</span><span class="selector-class">.example</span><span class="selector-class">.elktest</span><span class="selector-class">.ElkTestApplication</span>   : <span class="selector-tag">seed</span><span class="selector-pseudo">:562779</span></span><br><span class="line">2019<span class="selector-tag">-07-02</span> 17<span class="selector-pseudo">:13</span><span class="selector-pseudo">:13.630</span>  <span class="selector-tag">INFO</span> 31579 <span class="selector-tag">---</span> <span class="selector-attr">[pool-1-thread-1]</span> <span class="selector-tag">com</span><span class="selector-class">.example</span><span class="selector-class">.elktest</span><span class="selector-class">.ElkTestApplication</span>   : <span class="selector-tag">seed</span><span class="selector-pseudo">:963836</span></span><br><span class="line">2019<span class="selector-tag">-07-02</span> 17<span class="selector-pseudo">:13</span><span class="selector-pseudo">:13.730</span>  <span class="selector-tag">INFO</span> 31579 <span class="selector-tag">---</span> <span class="selector-attr">[pool-1-thread-1]</span> <span class="selector-tag">com</span><span class="selector-class">.example</span><span class="selector-class">.elktest</span><span class="selector-class">.ElkTestApplication</span>   : <span class="selector-tag">seed</span><span class="selector-pseudo">:825694</span></span><br><span class="line">2019<span class="selector-tag">-07-02</span> 17<span class="selector-pseudo">:13</span><span class="selector-pseudo">:13.830</span>  <span class="selector-tag">INFO</span> 31579 <span class="selector-tag">---</span> <span class="selector-attr">[pool-1-thread-1]</span> <span class="selector-tag">com</span><span class="selector-class">.example</span><span class="selector-class">.elktest</span><span class="selector-class">.ElkTestApplication</span>   : <span class="selector-tag">seed</span><span class="selector-pseudo">:33228</span></span><br><span class="line">2019<span class="selector-tag">-07-02</span> 17<span class="selector-pseudo">:13</span><span class="selector-pseudo">:13.930</span>  <span class="selector-tag">INFO</span> 31579 <span class="selector-tag">---</span> <span class="selector-attr">[pool-1-thread-1]</span> <span class="selector-tag">com</span><span class="selector-class">.example</span><span class="selector-class">.elktest</span><span class="selector-class">.ElkTestApplication</span>   : <span class="selector-tag">seed</span><span class="selector-pseudo">:685589</span></span><br></pre></td></tr></table></figure>
+
+<p>这时的日志数据的传输路径如下图：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/2279594-5e974fc79f61ae4c.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/802/format/webp" alt="img"></p>
+<p>1.png</p>
+<p>在kibana组件上查看，可以看到创建了一个filebeat开头的数据索引，如下图:</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/2279594-2359e59308d9d787.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1200/format/webp" alt="img"></p>
+<p>微信截图_20190702170554.png</p>
+<p>在日志搜索界面，可以看到service-hi应用输出的日志，如图所示：</p>
+<p><img src="https://upload-images.jianshu.io/upload_images/2279594-8338b551bdcbcd10.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1200/format/webp" alt="img"></p>
+
+    </div>
+
+    
+    
+    
+        <div class="reward-container">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    赞赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechatpay.png" alt="bai yu 微信支付">
+        <p>微信支付</p>
+      </div>
+      
+      <div style="display: inline-block;">
+        <img src="/images/alipay.png" alt="bai yu 支付宝">
+        <p>支付宝</p>
+      </div>
+
+  </div>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Elasticsearch/" rel="tag"># Elasticsearch</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2021/01/13/Java%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E4%B9%8BInvocationHandler/" rel="prev" title="Java动态代理之InvocationHandler">
+      <i class="fa fa-chevron-left"></i> Java动态代理之InvocationHandler
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        <div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2021</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">bai yu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">62k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">56 分钟</span>
+</div>
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">浙xxxx </a>
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              Counter('post', '/classes/Counter', { title, url, time: 1 })
+                .then(response => response.json())
+                .then(() => {
+                  leancloudSelector(url).innerText = 1;
+                })
+                .catch(error => {
+                  console.error('Failed to create', error);
+                });
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"IiFg7l57TOdHscSMUCMeUlw2-gzGzoHsz","app_key":"qpwIlyhFnXE257b3hxaADe4I","server_url":null,"security":false};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://baiyu128.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://baiyu128.github.io/2021/01/13/%E4%BD%BF%E7%94%A8ELK%E6%90%AD%E5%BB%BA%E6%97%A5%E8%AE%B0%E7%B3%BB%E7%BB%9F/";
+    this.page.identifier = "2021/01/13/使用ELK搭建日记系统/";
+    this.page.title = "使用ELK搭建日记系统";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://baiyu128.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
