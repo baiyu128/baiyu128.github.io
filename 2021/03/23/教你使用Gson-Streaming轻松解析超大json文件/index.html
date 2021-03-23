@@ -20,21 +20,21 @@
     var CONFIG = {"hostname":"baiyu128.github.io","root":"/","scheme":"Gemini","version":"8.0.0-rc.3","exturl":false,"sidebar":{"position":"left","display":"always","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
   </script>
 
-  <meta name="description" content="标题一标题二标题三">
+  <meta name="description" content="关于如何将大型Json文件解析为Java对象的指南。使用Gson Streaming读取非常大的Json文件并将其秘密转换为对象。 教程内容 概述 写入大型JSON文件 通过流读取大型JSON文件 概括">
 <meta property="og:type" content="article">
-<meta property="og:title" content="第一次使用">
-<meta property="og:url" content="https://baiyu128.github.io/2020/06/21/%E7%AC%AC%E4%B8%80%E6%AC%A1%E4%BD%BF%E7%94%A8/index.html">
+<meta property="og:title" content="教你使用Gson Streaming轻松解析超大json文件">
+<meta property="og:url" content="https://baiyu128.github.io/2021/03/23/%E6%95%99%E4%BD%A0%E4%BD%BF%E7%94%A8Gson-Streaming%E8%BD%BB%E6%9D%BE%E8%A7%A3%E6%9E%90%E8%B6%85%E5%A4%A7json%E6%96%87%E4%BB%B6/index.html">
 <meta property="og:site_name" content="BaiYu">
-<meta property="og:description" content="标题一标题二标题三">
+<meta property="og:description" content="关于如何将大型Json文件解析为Java对象的指南。使用Gson Streaming读取非常大的Json文件并将其秘密转换为对象。 教程内容 概述 写入大型JSON文件 通过流读取大型JSON文件 概括">
 <meta property="og:locale" content="zh_CN">
-<meta property="article:published_time" content="2020-06-21T07:48:37.000Z">
-<meta property="article:modified_time" content="2020-06-21T13:26:53.955Z">
+<meta property="article:published_time" content="2021-03-23T00:14:49.000Z">
+<meta property="article:modified_time" content="2021-03-23T00:23:40.401Z">
 <meta property="article:author" content="bai yu">
-<meta property="article:tag" content="blog">
-<meta property="article:tag" content="test">
+<meta property="article:tag" content="gson">
+<meta property="article:tag" content="json">
 <meta name="twitter:card" content="summary">
 
-<link rel="canonical" href="https://baiyu128.github.io/2020/06/21/%E7%AC%AC%E4%B8%80%E6%AC%A1%E4%BD%BF%E7%94%A8/">
+<link rel="canonical" href="https://baiyu128.github.io/2021/03/23/%E6%95%99%E4%BD%A0%E4%BD%BF%E7%94%A8Gson-Streaming%E8%BD%BB%E6%9D%BE%E8%A7%A3%E6%9E%90%E8%B6%85%E5%A4%A7json%E6%96%87%E4%BB%B6/">
 
 
 <script id="page-configurations">
@@ -47,7 +47,7 @@
   };
 </script>
 
-  <title>第一次使用 | BaiYu</title>
+  <title>教你使用Gson Streaming轻松解析超大json文件 | BaiYu</title>
   
 
 
@@ -214,7 +214,7 @@
 
       <!--noindex-->
       <div class="post-toc-wrap sidebar-panel">
-          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#标题一"><span class="nav-number">1.</span> <span class="nav-text">标题一</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#标题二"><span class="nav-number">1.1.</span> <span class="nav-text">标题二</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#标题三"><span class="nav-number">1.1.1.</span> <span class="nav-text">标题三</span></a></li></ol></li></ol></li></ol></div>
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#教程内容"><span class="nav-number">1.</span> <span class="nav-text">教程内容</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#概述"><span class="nav-number">1.1.</span> <span class="nav-text">概述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#写入大型JSON文件"><span class="nav-number">1.2.</span> <span class="nav-text">写入大型JSON文件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#通过流读取大型JSON文件"><span class="nav-number">1.3.</span> <span class="nav-text">通过流读取大型JSON文件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#测试"><span class="nav-number">1.3.1.</span> <span class="nav-text">测试</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#概括"><span class="nav-number">1.4.</span> <span class="nav-text">概括</span></a></li></ol></li></ol></div>
       </div>
       <!--/noindex-->
 
@@ -295,7 +295,7 @@
   
   
   <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
-    <link itemprop="mainEntityOfPage" href="https://baiyu128.github.io/2020/06/21/%E7%AC%AC%E4%B8%80%E6%AC%A1%E4%BD%BF%E7%94%A8/">
+    <link itemprop="mainEntityOfPage" href="https://baiyu128.github.io/2021/03/23/%E6%95%99%E4%BD%A0%E4%BD%BF%E7%94%A8Gson-Streaming%E8%BD%BB%E6%9D%BE%E8%A7%A3%E6%9E%90%E8%B6%85%E5%A4%A7json%E6%96%87%E4%BB%B6/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="image" content="/uploads/avatar.png">
@@ -308,7 +308,7 @@
     </span>
       <header class="post-header">
         <h1 class="post-title" itemprop="name headline">
-          第一次使用
+          教你使用Gson Streaming轻松解析超大json文件
         </h1>
 
         <div class="post-meta">
@@ -319,20 +319,11 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2020-06-21 15:48:37 / 修改时间：21:26:53" itemprop="dateCreated datePublished" datetime="2020-06-21T15:48:37+08:00">2020-06-21</time>
-            </span>
-            <span class="post-meta-item">
-              <span class="post-meta-item-icon">
-                <i class="far fa-folder"></i>
-              </span>
-              <span class="post-meta-item-text">分类于</span>
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
-                  <a href="/categories/Testing/" itemprop="url" rel="index"><span itemprop="name">Testing</span></a>
-                </span>
+              <time title="创建时间：2021-03-23 08:14:49 / 修改时间：08:23:40" itemprop="dateCreated datePublished" datetime="2021-03-23T08:14:49+08:00">2021-03-23</time>
             </span>
 
           
-            <span id="/2020/06/21/%E7%AC%AC%E4%B8%80%E6%AC%A1%E4%BD%BF%E7%94%A8/" class="post-meta-item leancloud_visitors" data-flag-title="第一次使用" title="阅读次数">
+            <span id="/2021/03/23/%E6%95%99%E4%BD%A0%E4%BD%BF%E7%94%A8Gson-Streaming%E8%BD%BB%E6%9D%BE%E8%A7%A3%E6%9E%90%E8%B6%85%E5%A4%A7json%E6%96%87%E4%BB%B6/" class="post-meta-item leancloud_visitors" data-flag-title="教你使用Gson Streaming轻松解析超大json文件" title="阅读次数">
               <span class="post-meta-item-icon">
                 <i class="fa fa-eye"></i>
               </span>
@@ -347,8 +338,8 @@
       </span>
       <span class="post-meta-item-text">Disqus：</span>
     
-    <a title="disqus" href="/2020/06/21/%E7%AC%AC%E4%B8%80%E6%AC%A1%E4%BD%BF%E7%94%A8/#disqus_thread" itemprop="discussionUrl">
-      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2020/06/21/第一次使用/" itemprop="commentCount"></span>
+    <a title="disqus" href="/2021/03/23/%E6%95%99%E4%BD%A0%E4%BD%BF%E7%94%A8Gson-Streaming%E8%BD%BB%E6%9D%BE%E8%A7%A3%E6%9E%90%E8%B6%85%E5%A4%A7json%E6%96%87%E4%BB%B6/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2021/03/23/教你使用Gson-Streaming轻松解析超大json文件/" itemprop="commentCount"></span>
     </a>
   </span>
   
@@ -358,14 +349,14 @@
                 <i class="far fa-file-word"></i>
               </span>
                 <span class="post-meta-item-text">本文字数：</span>
-              <span>54</span>
+              <span>2.1k</span>
             </span>
             <span class="post-meta-item" title="阅读时长">
               <span class="post-meta-item-icon">
                 <i class="far fa-clock"></i>
               </span>
                 <span class="post-meta-item-text">阅读时长 &asymp;</span>
-              <span>1 分钟</span>
+              <span>2 分钟</span>
             </span>
 
         </div>
@@ -377,14 +368,38 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="标题一"><a href="#标题一" class="headerlink" title="标题一"></a>标题一</h1><h2 id="标题二"><a href="#标题二" class="headerlink" title="标题二"></a>标题二</h2><h3 id="标题三"><a href="#标题三" class="headerlink" title="标题三"></a>标题三</h3><a id="more"></a>
+        <p>关于如何将<strong>大型Json文件解析为Java对象的指南</strong>。使用Gson Streaming<strong>读取非常大的Json文件</strong>并将其秘密转换为对象。</p>
+<h2 id="教程内容"><a href="#教程内容" class="headerlink" title="教程内容"></a>教程内容</h2><ul>
+<li>概述</li>
+<li>写入大型JSON文件</li>
+<li>通过流读取大型JSON文件</li>
+<li>概括</li>
+</ul>
+<a id="more"></a>
 
-<blockquote>
-<p>Test for more</p>
-</blockquote>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">System.out.println(<span class="string">"test for md"</span>)</span><br></pre></td></tr></table></figure>
+<h3 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h3><p><a href="https://mvnrepository.com/artifact/com.google.code.gson/gson" target="_blank" rel="noopener">Gson</a>是一个非常流行的API，用于将<a href="https://www.amitph.com/java-gson-json-to-object/" target="_blank" rel="noopener">JSON字符串解析为Objects</a>。<em>Gson</em>提供的parse方法非常适合读取整个JSON字符串并将其一次性解析为Java Objects。为此，首先将JSON字符串加载到内存中，然后将其转换为对象。但是，当我们处理一个非常大的JSON文件时，它可能导致OutOfMemoryError。为了避免这种情况，我们可以使用Gson流技术来分块解析一个大文件。</p>
+<p>在本教程中，我们使用Gson Streaming并将400 MB JSON文件有效地解析为Java Objects，而无需将其完全加载到内存中。我们还将监视程序消耗的内存量。但是，在执行此操作之前，让我们从快速设置开始。</p>
+<h3 id="写入大型JSON文件"><a href="#写入大型JSON文件" class="headerlink" title="写入大型JSON文件"></a>写入大型JSON文件</h3><p>首先，我们将使用Java程序创建一个400MB的Json文件。接下来是一个示例JSON形式的Person记录示例。</p>
+<figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">   <span class="attr">"name"</span>:<span class="string">"John"</span>,</span><br><span class="line">   <span class="attr">"age"</span>:<span class="number">31</span>,</span><br><span class="line">   <span class="attr">"city"</span>:<span class="string">"New York"</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p><a href="https://www.baidu.com" target="_blank" rel="noopener">链接</a></p>
+<p>我们将创建一个包含一千万个人记录的JSON数组，并将其存储到Json文件中。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">FileOutputStream fos = <span class="keyword">new</span> FileOutputStream(target);</span><br><span class="line">OutputStreamWriter ow = <span class="keyword">new</span> OutputStreamWriter(fos);</span><br><span class="line">ow.write(<span class="string">"["</span>);</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10000000</span>; i++) &#123;</span><br><span class="line">    <span class="keyword">if</span> (i != <span class="number">0</span>) &#123;</span><br><span class="line">        ow.write(<span class="string">","</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    ow.write(person);</span><br><span class="line">&#125;</span><br><span class="line">ow.write(<span class="string">"]"</span>);</span><br><span class="line">ow.flush();</span><br></pre></td></tr></table></figure>
+
+<p>我们正在使用OutputStreamWriter将每个人记录写入文件。不要忘记关闭所有打开的流和阅读器。</p>
+<h3 id="通过流读取大型JSON文件"><a href="#通过流读取大型JSON文件" class="headerlink" title="通过流读取大型JSON文件"></a>通过流读取大型JSON文件</h3><p>现在我们的输入JSON文件已准备就绪，我们将对其进行流传输，并使用Gson Streaming的内存高效方式将每条记录转换为Java对象。</p>
+<p>为了流式传输Json文件，Gson提供了<em>JsonReader</em>类。使用此类，我们可以浏览JSON对象和嵌套对象，并将它们迭代地转换为java对象。</p>
+<p>接下来是示例，在该示例中，我们读取大型JSON文件，遍历其内容，然后将其解析为对象。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">readLargeJson</span><span class="params">(String path)</span> <span class="keyword">throws</span> IOException </span>&#123;</span><br><span class="line">    <span class="keyword">try</span> (</span><br><span class="line">            InputStream inputStream = Files.newInputStream(Path.of(path));</span><br><span class="line">            JsonReader reader = <span class="keyword">new</span> JsonReader(<span class="keyword">new</span> InputStreamReader(inputStream));</span><br><span class="line">    ) &#123;            </span><br><span class="line">        reader.beginArray();</span><br><span class="line">        <span class="keyword">while</span> (reader.hasNext()) &#123;</span><br><span class="line">            Person person = <span class="keyword">new</span> Gson().fromJson(reader, Person<span class="class">.<span class="keyword">class</span>)</span>;</span><br><span class="line">            <span class="comment">//System.out.println(Person);</span></span><br><span class="line">        &#125;</span><br><span class="line">        reader.endArray();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>首先，我们在文件上创建一个<em>InputStream</em>，并使用它来创建<em>InputStreamReader</em>。接下来，我们实例化<em>JsonReader</em>包装器并将其用于解析JSON文件。</p>
+<p>当我们处理人员对象的Json数组时，我们使用<code>beginArray()</code>方法来流经数组元素。然后，我们遍历Json数组的所有元素，并将每个元素隐式转换为新的Person对象。最后，我们关闭数组。请注意，我们使用try-with-resources块自动关闭流和读取器。</p>
+<p>同样，如果要处理大型Json对象，则可以使用<code>beginObject()</code>方法访问嵌套对象。</p>
+<h4 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h4><p>现在，我们将使用我们创建的<strong>400MB Json文件对其</strong>进行流式处理。为了监视内存消耗，我们将在单独的线程中运行<em>readLargeJson（）</em>方法。主线程以固定的时间间隔在控制台上以MB为单位打印可用内存量。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Source File Size 400</span><br><span class="line">Memory used: 9</span><br><span class="line">Memory used: 139</span><br><span class="line">Memory used: 112</span><br><span class="line">Memory used: 122</span><br><span class="line">Memory used: 96</span><br><span class="line">Memory used: 121</span><br><span class="line">Memory used: 150</span><br><span class="line">Memory used: 82</span><br><span class="line">total time 35023</span><br></pre></td></tr></table></figure>
+
+<p>输出清楚地表明我们的内存消耗是最佳的，并且我们没有将整个JSON文件读入内存。</p>
+<h3 id="概括"><a href="#概括" class="headerlink" title="概括"></a>概括</h3><p>在本快速教程中，我们学习了如何以<strong>内存有效的方式</strong>解析超大型JSON文件，<strong>以避免**</strong>OutOfMemoryError**。我们使用GSON API来流化一个400 MB的Json文件，并将其迭代地转换为Java对象。</p>
+<p>要使用Jackson API解析Json对象，请访问将<a href="https://www.amitph.com/java-jackson-json-to-object/" target="_blank" rel="noopener"><strong>JSON字符串读取</strong></a>为使用Jackson API的<a href="https://www.amitph.com/java-jackson-json-to-object/" target="_blank" rel="noopener"><strong>Java对象</strong></a>。</p>
 
     </div>
 
@@ -433,8 +448,8 @@
 
       <footer class="post-footer">
           <div class="post-tags">
-              <a href="/tags/blog/" rel="tag"># blog</a>
-              <a href="/tags/test/" rel="tag"># test</a>
+              <a href="/tags/gson/" rel="tag"># gson</a>
+              <a href="/tags/json/" rel="tag"># json</a>
           </div>
 
         
@@ -442,11 +457,11 @@
 
         
     <div class="post-nav">
-      <div class="post-nav-item"></div>
       <div class="post-nav-item">
-    <a href="/2020/06/22/Spring-Boot-%E9%A1%B9%E7%9B%AE%E8%84%9A%E6%9C%AC%EF%BC%88%E5%90%AF%E5%8A%A8%E3%80%81%E5%81%9C%E6%AD%A2%E3%80%81%E9%87%8D%E5%90%AF%E3%80%81%E7%8A%B6%E6%80%81/" rel="next" title="Spring Boot 项目脚本（启动、停止、重启、状态)">
-      Spring Boot 项目脚本（启动、停止、重启、状态) <i class="fa fa-chevron-right"></i>
+    <a href="/2021/03/19/%E4%BB%8E%E4%B8%80%E4%B8%AA%E6%94%AF%E4%BB%98%E6%A1%88%E4%BE%8B%E5%AD%A6%E4%B9%A0%E7%AD%96%E7%95%A5%E6%A8%A1%E5%BC%8F/" rel="prev" title="从一个支付案例学习策略模式">
+      <i class="fa fa-chevron-left"></i> 从一个支付案例学习策略模式
     </a></div>
+      <div class="post-nav-item"></div>
     </div>
       </footer>
     
@@ -673,9 +688,9 @@
 </script>
 <script>
   var disqus_config = function() {
-    this.page.url = "https://baiyu128.github.io/2020/06/21/%E7%AC%AC%E4%B8%80%E6%AC%A1%E4%BD%BF%E7%94%A8/";
-    this.page.identifier = "2020/06/21/第一次使用/";
-    this.page.title = "第一次使用";
+    this.page.url = "https://baiyu128.github.io/2021/03/23/%E6%95%99%E4%BD%A0%E4%BD%BF%E7%94%A8Gson-Streaming%E8%BD%BB%E6%9D%BE%E8%A7%A3%E6%9E%90%E8%B6%85%E5%A4%A7json%E6%96%87%E4%BB%B6/";
+    this.page.identifier = "2021/03/23/教你使用Gson-Streaming轻松解析超大json文件/";
+    this.page.title = "教你使用Gson Streaming轻松解析超大json文件";
     };
   NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
     if (window.DISQUS) {
