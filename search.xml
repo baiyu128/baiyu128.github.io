@@ -1745,6 +1745,8 @@
 <li>根据优惠券类型resourceType -&gt; 确定查询哪个数据表</li>
 <li>根据编码resourceId -&gt; 到对应的数据表里边查询优惠券的派发方式grantType和领取规则</li>
 </ul>
+<a id="more"></a>
+
 <p>优惠券有多种类型，分别对应了不同的数据库表：</p>
 <ul>
 <li>红包 —— 红包发放规则表</li>
