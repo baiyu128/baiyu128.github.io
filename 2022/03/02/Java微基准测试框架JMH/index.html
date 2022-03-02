@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"baiyu128.github.io","root":"/","scheme":"Gemini","version":"8.0.0-rc.3","exturl":false,"sidebar":{"position":"left","display":"always","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="JMH，即Java Microbenchmark Harness，这是专门用于进行代码的微基准测试的一套工具API。 JMH 由 OpenJDK&#x2F;Oracle 里面那群开发了 Java 编译器的大牛们所开发 。何谓 Micro Benchmark 呢？ 简单地说就是在 method 层面上的 benchmark，精度可以精确到微秒级。 Java的基准测试需要注意的几个点：  测试前需要预热。 防止">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java微基准测试框架JMH">
+<meta property="og:url" content="https://baiyu128.github.io/2022/03/02/Java%E5%BE%AE%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6JMH/index.html">
+<meta property="og:site_name" content="BaiYu">
+<meta property="og:description" content="JMH，即Java Microbenchmark Harness，这是专门用于进行代码的微基准测试的一套工具API。 JMH 由 OpenJDK&#x2F;Oracle 里面那群开发了 Java 编译器的大牛们所开发 。何谓 Micro Benchmark 呢？ 简单地说就是在 method 层面上的 benchmark，精度可以精确到微秒级。 Java的基准测试需要注意的几个点：  测试前需要预热。 防止">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://static01.imgkr.com/temp/e5d15610f4124527b79633b9bdbbfaad.png">
+<meta property="article:published_time" content="2022-03-02T02:39:09.000Z">
+<meta property="article:modified_time" content="2022-03-02T02:45:17.849Z">
+<meta property="article:author" content="bai yu">
+<meta property="article:tag" content="-java">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://static01.imgkr.com/temp/e5d15610f4124527b79633b9bdbbfaad.png">
+
+<link rel="canonical" href="https://baiyu128.github.io/2022/03/02/Java%E5%BE%AE%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6JMH/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>Java微基准测试框架JMH | BaiYu</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?828ef564b6cd127ce936729bfd05afaf";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before, .use-motion .logo-line-after {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="BaiYu" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+        <span class="toggle-line toggle-line-first"></span>
+        <span class="toggle-line toggle-line-middle"></span>
+        <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line-before"></i>
+      <h1 class="site-title">BaiYu</h1>
+      <i class="logo-line-after"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">baiyu`s blog</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#第一个例子"><span class="nav-number">1.</span> <span class="nav-text">第一个例子</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#添加maven依赖"><span class="nav-number">1.1.</span> <span class="nav-text">添加maven依赖</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#编写性能测试"><span class="nav-number">1.2.</span> <span class="nav-text">编写性能测试</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#执行方式"><span class="nav-number">1.3.</span> <span class="nav-text">执行方式</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#报告结果"><span class="nav-number">1.4.</span> <span class="nav-text">报告结果</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#注解介绍"><span class="nav-number">2.</span> <span class="nav-text">注解介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#BenchmarkMode"><span class="nav-number">2.1.</span> <span class="nav-text">@BenchmarkMode</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Warmup"><span class="nav-number">2.2.</span> <span class="nav-text">@Warmup</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Measurement"><span class="nav-number">2.3.</span> <span class="nav-text">@Measurement</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Threads"><span class="nav-number">2.4.</span> <span class="nav-text">@Threads</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Fork"><span class="nav-number">2.5.</span> <span class="nav-text">@Fork</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#OutputTimeUnit"><span class="nav-number">2.6.</span> <span class="nav-text">@OutputTimeUnit</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Benchmark"><span class="nav-number">2.7.</span> <span class="nav-text">@Benchmark</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Param"><span class="nav-number">2.8.</span> <span class="nav-text">@Param</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Setup"><span class="nav-number">2.9.</span> <span class="nav-text">@Setup</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TearDown"><span class="nav-number">2.10.</span> <span class="nav-text">@TearDown</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#State"><span class="nav-number">2.11.</span> <span class="nav-text">@State</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#第二个例子"><span class="nav-number">3.</span> <span class="nav-text">第二个例子</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="bai yu"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">bai yu</p>
+  <div class="site-description" itemprop="description">Don`t stop, keep moving</div>
+</div>
+
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">18</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">16</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/baiyu128" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;baiyu128" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:baixixi187@163.com" title="E-Mail → mailto:baixixi187@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+      Links
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://baixixi.xyz/" title="http:&#x2F;&#x2F;baixixi.xyz" rel="noopener" target="_blank">Blog</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://baiyu128.github.io/2022/03/02/Java%E5%BE%AE%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6JMH/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="bai yu">
+      <meta itemprop="description" content="Don`t stop, keep moving">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="BaiYu">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Java微基准测试框架JMH
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-03-02 10:39:09 / 修改时间：10:45:17" itemprop="dateCreated datePublished" datetime="2022-03-02T10:39:09+08:00">2022-03-02</time>
+            </span>
+
+          
+            <span id="/2022/03/02/Java%E5%BE%AE%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6JMH/" class="post-meta-item leancloud_visitors" data-flag-title="Java微基准测试框架JMH" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2022/03/02/Java%E5%BE%AE%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6JMH/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2022/03/02/Java微基准测试框架JMH/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>9.8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>9 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p>JMH，即Java Microbenchmark Harness，这是专门用于进行代码的微基准测试的一套工具API。</p>
+<p>JMH 由 OpenJDK/Oracle 里面那群开发了 Java 编译器的大牛们所开发 。何谓 Micro Benchmark 呢？ 简单地说就是在 method 层面上的 benchmark，精度可以精确到微秒级。</p>
+<p>Java的基准测试需要注意的几个点：</p>
+<ul>
+<li>测试前需要预热。</li>
+<li>防止无用代码进入测试方法中。</li>
+<li>并发测试。</li>
+<li>测试结果呈现。</li>
+</ul>
+<a id="more"></a>
+
+<p>比较典型的使用场景：</p>
+<ol>
+<li>当你已经找出了热点函数，而需要对热点函数进行进一步的优化时，就可以使用 JMH 对优化的效果进行定量的分析。</li>
+<li>想定量地知道某个函数需要执行多长时间，以及执行时间和输入 n 的相关性</li>
+<li>一个函数有两种不同实现（例如JSON序列化/反序列化有Jackson和Gson实现），不知道哪种实现性能更好</li>
+</ol>
+<p>尽管 JMH 是一个相当不错的 Micro Benchmark Framework，但很无奈的是网上能够找到的文档比较少，而官方也没有提供比较详细的文档，对使用造成了一定的障碍。 但是有个好消息是官方的 <a href="http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/" target="_blank" rel="noopener">Code Sample</a> 写得非常浅显易懂， 推荐在需要详细了解 JMH 的用法时可以通读一遍——本文则会介绍 JMH 最典型的用法和部分常用选项。</p>
+<h2 id="第一个例子"><a href="#第一个例子" class="headerlink" title="第一个例子"></a>第一个例子</h2><h3 id="添加maven依赖"><a href="#添加maven依赖" class="headerlink" title="添加maven依赖"></a>添加maven依赖</h3><p>如果使用maven项目，只需要添加如下依赖：</p>
+<figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">&lt;!-- JMH--&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.openjdk.jmh<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>jmh-core<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>$&#123;jmh.version&#125;<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">dependency</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">groupId</span>&gt;</span>org.openjdk.jmh<span class="tag">&lt;/<span class="name">groupId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">artifactId</span>&gt;</span>jmh-generator-annprocess<span class="tag">&lt;/<span class="name">artifactId</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">version</span>&gt;</span>$&#123;jmh.version&#125;<span class="tag">&lt;/<span class="name">version</span>&gt;</span></span><br><span class="line">    <span class="tag">&lt;<span class="name">scope</span>&gt;</span>provided<span class="tag">&lt;/<span class="name">scope</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">dependency</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="编写性能测试"><a href="#编写性能测试" class="headerlink" title="编写性能测试"></a>编写性能测试</h3><p>接下来我写一个比较字符串连接操作的时候，直接使用字符串相加和使用StringBuilder的append方式的性能比较测试：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 比较字符串直接相加和StringBuilder的效率</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> XiongNeng</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@version</span> 1.0</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@since</span> 2018/1/7</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@BenchmarkMode</span>(Mode.Throughput)</span><br><span class="line"><span class="meta">@Warmup</span>(iterations = <span class="number">3</span>)</span><br><span class="line"><span class="meta">@Measurement</span>(iterations = <span class="number">10</span>, time = <span class="number">5</span>, timeUnit = TimeUnit.SECONDS)</span><br><span class="line"><span class="meta">@Threads</span>(<span class="number">8</span>)</span><br><span class="line"><span class="meta">@Fork</span>(<span class="number">2</span>)</span><br><span class="line"><span class="meta">@OutputTimeUnit</span>(TimeUnit.MILLISECONDS)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">StringBuilderBenchmark</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Benchmark</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testStringAdd</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        String a = <span class="string">""</span>;</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">            a += i;</span><br><span class="line">        &#125;</span><br><span class="line">        print(a);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Benchmark</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">testStringBuilderAdd</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        StringBuilder sb = <span class="keyword">new</span> StringBuilder();</span><br><span class="line">        <span class="keyword">for</span> (<span class="keyword">int</span> i = <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">            sb.append(i);</span><br><span class="line">        &#125;</span><br><span class="line">        print(sb.toString());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">print</span><span class="params">(String a)</span> </span>&#123;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="执行方式"><a href="#执行方式" class="headerlink" title="执行方式"></a>执行方式</h3><p>这个代码里面有好多注解，你第一次见可能不知道什么意思。先不用管，我待会一一介绍。</p>
+<p>我们来运行这个测试，运行JMH基准测试有多种方式，一个是生成jar文件执行， 一个是直接写main函数或写单元测试执行。</p>
+<p>一般对于大型的测试，需要测试时间比较久，线程比较多的话，就需要去写好了丢到linux程序里执行， 不然本机执行很久时间什么都干不了了。</p>
+<figure class="highlight sh"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mvn clean package</span><br><span class="line">java -jar target/benchmarks.jar</span><br></pre></td></tr></table></figure>
+
+<p>先编译打包之后，然后执行就可以了。当然在执行的时候可以输入-h参数来看帮助。</p>
+<p>另外如果对于一些小的测试，比如我写的上面这个小例子，在IDE里面就可以完成了，丢到linux上去太麻烦。 这时候可以在里面添加一个main函数如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> RunnerException </span>&#123;</span><br><span class="line">    Options options = <span class="keyword">new</span> OptionsBuilder()</span><br><span class="line">            .include(StringBuilderBenchmark<span class="class">.<span class="keyword">class</span>.<span class="title">getSimpleName</span>())</span></span><br><span class="line">            .output("E:/Benchmark.log")</span><br><span class="line">            .build();</span><br><span class="line">    <span class="keyword">new</span> Runner(options).run();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里其实也比较简单，new个Options，然后传入要运行哪个测试，选择基准测试报告输出文件地址，然后通过Runner的run方法就可以跑起来了。</p>
+<h3 id="报告结果"><a href="#报告结果" class="headerlink" title="报告结果"></a>报告结果</h3><p>我们跑一下这个基准测试，完成后打开<code>E:/Benchmark.log</code>，结果如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br></pre></td><td class="code"><pre><span class="line"># JMH version: 1.20</span><br><span class="line"># VM version: JDK 1.8.0_131, VM 25.131-b11</span><br><span class="line"># VM invoker: C:\Program Files\Java\jdk1.8.0_131\jre\bin\java.exe</span><br><span class="line"># VM options: -javaagent:E:\Program Files\JetBrains\IntelliJ IDEA 2017.3\lib\idea_rt.jar&#x3D;62744:E:\Program Files\JetBrains\IntelliJ IDEA 2017.3\bin -Dfile.encoding&#x3D;UTF-8</span><br><span class="line"># Warmup: 3 iterations, 1 s each</span><br><span class="line"># Measurement: 10 iterations, 5 s each</span><br><span class="line"># Timeout: 10 min per iteration</span><br><span class="line"># Threads: 16 threads, will synchronize iterations</span><br><span class="line"># Benchmark mode: Throughput, ops&#x2F;time</span><br><span class="line"># Benchmark: com.xncoding.benchmark.string.StringBuilderBenchmark.testStringAdd</span><br><span class="line"></span><br><span class="line"># Run progress: 0.00% complete, ETA 00:03:32</span><br><span class="line"># Fork: 1 of 2</span><br><span class="line"># Warmup Iteration   1: 7332.410 ops&#x2F;ms</span><br><span class="line"># Warmup Iteration   2: 8758.506 ops&#x2F;ms</span><br><span class="line"># Warmup Iteration   3: 9078.783 ops&#x2F;ms</span><br><span class="line">Iteration   1: 8824.713 ops&#x2F;ms</span><br><span class="line">Iteration   2: 9084.977 ops&#x2F;ms</span><br><span class="line">Iteration   3: 9412.712 ops&#x2F;ms</span><br><span class="line">Iteration   4: 8843.631 ops&#x2F;ms</span><br><span class="line">Iteration   5: 9030.556 ops&#x2F;ms</span><br><span class="line">Iteration   6: 9090.677 ops&#x2F;ms</span><br><span class="line">Iteration   7: 9493.148 ops&#x2F;ms</span><br><span class="line">Iteration   8: 8664.593 ops&#x2F;ms</span><br><span class="line">Iteration   9: 8835.227 ops&#x2F;ms</span><br><span class="line">Iteration  10: 8570.212 ops&#x2F;ms</span><br><span class="line"></span><br><span class="line"># Run progress: 25.00% complete, ETA 00:03:15</span><br><span class="line"># Fork: 2 of 2</span><br><span class="line"># Warmup Iteration   1: 5350.686 ops&#x2F;ms</span><br><span class="line"># Warmup Iteration   2: 8862.238 ops&#x2F;ms</span><br><span class="line"># Warmup Iteration   3: 8086.594 ops&#x2F;ms</span><br><span class="line">Iteration   1: 9105.306 ops&#x2F;ms</span><br><span class="line">Iteration   2: 8288.588 ops&#x2F;ms</span><br><span class="line">Iteration   3: 9307.902 ops&#x2F;ms</span><br><span class="line">Iteration   4: 9195.150 ops&#x2F;ms</span><br><span class="line">Iteration   5: 8715.555 ops&#x2F;ms</span><br><span class="line">Iteration   6: 9075.069 ops&#x2F;ms</span><br><span class="line">Iteration   7: 9041.037 ops&#x2F;ms</span><br><span class="line">Iteration   8: 9187.099 ops&#x2F;ms</span><br><span class="line">Iteration   9: 9145.134 ops&#x2F;ms</span><br><span class="line">Iteration  10: 9124.229 ops&#x2F;ms</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Result &quot;com.xncoding.benchmark.string.StringBuilderBenchmark.testStringAdd&quot;:</span><br><span class="line">  9001.776 ±(99.9%) 253.496 ops&#x2F;ms [Average]</span><br><span class="line">  (min, avg, max) &#x3D; (8288.588, 9001.776, 9493.148), stdev &#x3D; 291.926</span><br><span class="line">  CI (99.9%): [8748.280, 9255.272] (assumes normal distribution)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># JMH version: 1.20</span><br><span class="line"># VM version: JDK 1.8.0_131, VM 25.131-b11</span><br><span class="line"># VM invoker: C:\Program Files\Java\jdk1.8.0_131\jre\bin\java.exe</span><br><span class="line"># VM options: -javaagent:E:\Program Files\JetBrains\IntelliJ IDEA 2017.3\lib\idea_rt.jar&#x3D;62744:E:\Program Files\JetBrains\IntelliJ IDEA 2017.3\bin -Dfile.encoding&#x3D;UTF-8</span><br><span class="line"># Warmup: 3 iterations, 1 s each</span><br><span class="line"># Measurement: 10 iterations, 5 s each</span><br><span class="line"># Timeout: 10 min per iteration</span><br><span class="line"># Threads: 16 threads, will synchronize iterations</span><br><span class="line"># Benchmark mode: Throughput, ops&#x2F;time</span><br><span class="line"># Benchmark: com.xncoding.benchmark.string.StringBuilderBenchmark.testStringBuilderAdd</span><br><span class="line"></span><br><span class="line"># Run progress: 50.00% complete, ETA 00:02:07</span><br><span class="line"># Fork: 1 of 2</span><br><span class="line"># Warmup Iteration   1: 27202.528 ops&#x2F;ms</span><br><span class="line"># Warmup Iteration   2: 26500.586 ops&#x2F;ms</span><br><span class="line"># Warmup Iteration   3: 27190.346 ops&#x2F;ms</span><br><span class="line">Iteration   1: 27891.257 ops&#x2F;ms</span><br><span class="line">Iteration   2: 28704.541 ops&#x2F;ms</span><br><span class="line">Iteration   3: 27785.951 ops&#x2F;ms</span><br><span class="line">Iteration   4: 26841.454 ops&#x2F;ms</span><br><span class="line">Iteration   5: 26024.288 ops&#x2F;ms</span><br><span class="line">Iteration   6: 25592.494 ops&#x2F;ms</span><br><span class="line">Iteration   7: 25626.875 ops&#x2F;ms</span><br><span class="line">Iteration   8: 25302.248 ops&#x2F;ms</span><br><span class="line">Iteration   9: 25519.780 ops&#x2F;ms</span><br><span class="line">Iteration  10: 25275.334 ops&#x2F;ms</span><br><span class="line"></span><br><span class="line"># Run progress: 75.00% complete, ETA 00:01:02</span><br><span class="line"># Fork: 2 of 2</span><br><span class="line"># Warmup Iteration   1: 30376.008 ops&#x2F;ms</span><br><span class="line"># Warmup Iteration   2: 25131.064 ops&#x2F;ms</span><br><span class="line"># Warmup Iteration   3: 25622.342 ops&#x2F;ms</span><br><span class="line">Iteration   1: 25386.845 ops&#x2F;ms</span><br><span class="line">Iteration   2: 25825.139 ops&#x2F;ms</span><br><span class="line">Iteration   3: 26029.607 ops&#x2F;ms</span><br><span class="line">Iteration   4: 25531.748 ops&#x2F;ms</span><br><span class="line">Iteration   5: 25374.934 ops&#x2F;ms</span><br><span class="line">Iteration   6: 25204.530 ops&#x2F;ms</span><br><span class="line">Iteration   7: 22934.211 ops&#x2F;ms</span><br><span class="line">Iteration   8: 23907.677 ops&#x2F;ms</span><br><span class="line">Iteration   9: 24337.963 ops&#x2F;ms</span><br><span class="line">Iteration  10: 24660.626 ops&#x2F;ms</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">Result &quot;com.xncoding.benchmark.string.StringBuilderBenchmark.testStringBuilderAdd&quot;:</span><br><span class="line">  25687.875 ±(99.9%) 1167.955 ops&#x2F;ms [Average]</span><br><span class="line">  (min, avg, max) &#x3D; (22934.211, 25687.875, 28704.541), stdev &#x3D; 1345.019</span><br><span class="line">  CI (99.9%): [24519.920, 26855.830] (assumes normal distribution)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"># Run complete. Total time: 00:04:08</span><br><span class="line"></span><br><span class="line">Benchmark                                     Mode  Cnt      Score      Error   Units</span><br><span class="line">StringBuilderBenchmark.testStringAdd         thrpt   20   9001.776 ±  253.496  ops&#x2F;ms</span><br><span class="line">StringBuilderBenchmark.testStringBuilderAdd  thrpt   20  25687.875 ± 1167.955  ops&#x2F;ms</span><br></pre></td></tr></table></figure>
+
+<p>仔细看，三大部分，第一部分是字符串用加号连接执行的结果，第二部分是StringBuilder执行的结果，第三部分就是两个的简单结果比较。这里注意我们forks传的2，所以每个测试有两个fork结果。</p>
+<p>前两部分是一样的，简单说下。首先会写出每部分的一些参数设置，然后是预热迭代执行（Warmup Iteration）， 然后是正常的迭代执行（Iteration），最后是结果（Result）。这些看看就好，我们最关注的就是第三部分， 其实也就是最终的结论。千万别看歪了，他输出的也确实很不爽，error那列其实没有内容，score的结果是xxx ± xxx，单位是每毫秒多少个操作。可以看到，StringBuilder的速度还确实是要比String进行文字叠加的效率好太多。</p>
+<h2 id="注解介绍"><a href="#注解介绍" class="headerlink" title="注解介绍"></a>注解介绍</h2><p>好了，当你对JMH有了一个基本认识后，现在来详细解释一下前面代码中的各个注解含义。</p>
+<h3 id="BenchmarkMode"><a href="#BenchmarkMode" class="headerlink" title="@BenchmarkMode"></a>@BenchmarkMode</h3><p>基准测试类型。这里选择的是Throughput也就是吞吐量。根据源码点进去，每种类型后面都有对应的解释，比较好理解，吞吐量会得到单位时间内可以进行的操作数。</p>
+<ul>
+<li>Throughput: 整体吞吐量，例如”1秒内可以执行多少次调用”。</li>
+<li>AverageTime: 调用的平均时间，例如”每次调用平均耗时xxx毫秒”。</li>
+<li>SampleTime: 随机取样，最后输出取样结果的分布，例如”99%的调用在xxx毫秒以内，99.99%的调用在xxx毫秒以内”</li>
+<li>SingleShotTime: 以上模式都是默认一次 iteration 是 1s，唯有 SingleShotTime 是只运行一次。往往同时把 warmup 次数设为0，用于测试冷启动时的性能。</li>
+<li>All(“all”, “All benchmark modes”);</li>
+</ul>
+<h3 id="Warmup"><a href="#Warmup" class="headerlink" title="@Warmup"></a>@Warmup</h3><p>上面我们提到了，进行基准测试前需要进行预热。一般我们前几次进行程序测试的时候都会比较慢， 所以要让程序进行几轮预热，保证测试的准确性。其中的参数iterations也就非常好理解了，就是预热轮数。</p>
+<p>为什么需要预热？因为 JVM 的 JIT 机制的存在，如果某个函数被调用多次之后，JVM 会尝试将其编译成为机器码从而提高执行速度。所以为了让 benchmark 的结果更加接近真实情况就需要进行预热。</p>
+<h3 id="Measurement"><a href="#Measurement" class="headerlink" title="@Measurement"></a>@Measurement</h3><p>度量，其实就是一些基本的测试参数。</p>
+<ol>
+<li>iterations 进行测试的轮次</li>
+<li>time 每轮进行的时长</li>
+<li>timeUnit 时长单位</li>
+</ol>
+<p>都是一些基本的参数，可以根据具体情况调整。一般比较重的东西可以进行大量的测试，放到服务器上运行。</p>
+<h3 id="Threads"><a href="#Threads" class="headerlink" title="@Threads"></a>@Threads</h3><p>每个进程中的测试线程，这个非常好理解，根据具体情况选择，一般为cpu乘以2。</p>
+<h3 id="Fork"><a href="#Fork" class="headerlink" title="@Fork"></a>@Fork</h3><p>进行 fork 的次数。如果 fork 数是2的话，则 JMH 会 fork 出两个进程来进行测试。</p>
+<h3 id="OutputTimeUnit"><a href="#OutputTimeUnit" class="headerlink" title="@OutputTimeUnit"></a>@OutputTimeUnit</h3><p>这个比较简单了，基准测试结果的时间类型。一般选择秒、毫秒、微秒。</p>
+<h3 id="Benchmark"><a href="#Benchmark" class="headerlink" title="@Benchmark"></a>@Benchmark</h3><p>方法级注解，表示该方法是需要进行 benchmark 的对象，用法和 JUnit 的 @Test 类似。</p>
+<h3 id="Param"><a href="#Param" class="headerlink" title="@Param"></a>@Param</h3><p>属性级注解，@Param 可以用来指定某项参数的多种情况。特别适合用来测试一个函数在不同的参数输入的情况下的性能。</p>
+<h3 id="Setup"><a href="#Setup" class="headerlink" title="@Setup"></a>@Setup</h3><p>方法级注解，这个注解的作用就是我们需要在测试之前进行一些准备工作，比如对一些数据的初始化之类的。</p>
+<h3 id="TearDown"><a href="#TearDown" class="headerlink" title="@TearDown"></a>@TearDown</h3><p>方法级注解，这个注解的作用就是我们需要在测试之后进行一些结束工作，比如关闭线程池，数据库连接等的，主要用于资源的回收等。</p>
+<h3 id="State"><a href="#State" class="headerlink" title="@State"></a>@State</h3><p>当使用@Setup参数的时候，必须在类上加这个参数，不然会提示无法运行。</p>
+<p>State 用于声明某个类是一个”状态”，然后接受一个 Scope 参数用来表示该状态的共享范围。 因为很多 benchmark 会需要一些表示状态的类，JMH 允许你把这些类以依赖注入的方式注入到 benchmark 函数里。Scope 主要分为三种。</p>
+<ol>
+<li>Thread: 该状态为每个线程独享。</li>
+<li>Group: 该状态为同一个组里面所有线程共享。</li>
+<li>Benchmark: 该状态在所有线程间共享。</li>
+</ol>
+<p>关于State的用法，官方的 code sample 里有比较好的<a href="http://hg.openjdk.java.net/code-tools/jmh/file/cb9aa824b55a/jmh-samples/src/main/java/org/openjdk/jmh/samples/JMHSample_03_States.java" target="_blank" rel="noopener">例子</a>。</p>
+<h2 id="第二个例子"><a href="#第二个例子" class="headerlink" title="第二个例子"></a>第二个例子</h2><p>再来看一个更常规一点性能测试的例子，</p>
+<p>计算 1 ~ n 之和，比较串行算法和并行算法的效率，看 n 在大约多少时并行算法开始超越串行算法</p>
+<p>首先定义一个表示这两种实现的接口：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * Calculator</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> XiongNeng</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@version</span> 1.0</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@since</span> 2018/1/7</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">interface</span> <span class="title">Calculator</span> </span>&#123;</span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * calculate sum of an integer array</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> numbers</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">sum</span><span class="params">(<span class="keyword">int</span>[] numbers)</span></span>;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * shutdown pool or reclaim any related resources</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span></span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>具体的两种实现代码我就不贴了，主要说明一下串行算法和并行算法实现原理：</p>
+<ul>
+<li>串行算法：使用 for-loop 来计算 n 个正整数之和。</li>
+<li>并行算法：将所需要计算的 n 个正整数分成 m 份，交给 m 个线程分别计算出和以后，再把它们的结果相加。</li>
+</ul>
+<p>进行 benchmark 的代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 自然数求和的串行和并行算法性能测试</span></span><br><span class="line"><span class="comment"> *</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@author</span> XiongNeng</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@version</span> 1.0</span></span><br><span class="line"><span class="comment"> * <span class="doctag">@since</span> 2018/1/7</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="meta">@BenchmarkMode</span>(Mode.AverageTime)</span><br><span class="line"><span class="meta">@OutputTimeUnit</span>(TimeUnit.MICROSECONDS)</span><br><span class="line"><span class="meta">@State</span>(Scope.Benchmark)</span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">SecondBenchmark</span> </span>&#123;</span><br><span class="line">    <span class="meta">@Param</span>(&#123;<span class="string">"10000"</span>, <span class="string">"100000"</span>, <span class="string">"1000000"</span>&#125;)</span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span> length;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">int</span>[] numbers;</span><br><span class="line">    <span class="keyword">private</span> Calculator singleThreadCalc;</span><br><span class="line">    <span class="keyword">private</span> Calculator multiThreadCalc;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        Options opt = <span class="keyword">new</span> OptionsBuilder()</span><br><span class="line">                .include(SecondBenchmark<span class="class">.<span class="keyword">class</span>.<span class="title">getSimpleName</span>())</span></span><br><span class="line"><span class="class">                .<span class="title">forks</span>(1)</span></span><br><span class="line"><span class="class">                .<span class="title">warmupIterations</span>(5)</span></span><br><span class="line"><span class="class">                .<span class="title">measurementIterations</span>(2)</span></span><br><span class="line"><span class="class">                .<span class="title">build</span>()</span>;</span><br><span class="line">        Collection&lt;RunResult&gt; results =  <span class="keyword">new</span> Runner(opt).run();</span><br><span class="line">        ResultExporter.exportResult(<span class="string">"单线程与多线程求和性能"</span>, results, <span class="string">"length"</span>, <span class="string">"微秒"</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Benchmark</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">singleThreadBench</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> singleThreadCalc.sum(numbers);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Benchmark</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">long</span> <span class="title">multiThreadBench</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="keyword">return</span> multiThreadCalc.sum(numbers);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Setup</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">prepare</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        numbers = IntStream.rangeClosed(<span class="number">1</span>, length).toArray();</span><br><span class="line">        singleThreadCalc = <span class="keyword">new</span> SinglethreadCalculator();</span><br><span class="line">        multiThreadCalc = <span class="keyword">new</span> MultithreadCalculator(Runtime.getRuntime().availableProcessors());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@TearDown</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">shutdown</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        singleThreadCalc.shutdown();</span><br><span class="line">        multiThreadCalc.shutdown();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我在自己的笔记本电脑上跑下来的结果，总数在10000时并行算法不如串行算法， 总数达到100000时并行算法开始和串行算法接近，总数达到1000000时并行算法所耗时间约是串行算法的一半左右。<br><img src="https://static01.imgkr.com/temp/e5d15610f4124527b79633b9bdbbfaad.png" alt="jmh"></p>
+
+    </div>
+
+    
+    
+    
+        <div class="reward-container">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    赞赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechatpay.png" alt="bai yu 微信支付">
+        <p>微信支付</p>
+      </div>
+      
+      <div style="display: inline-block;">
+        <img src="/images/alipay.png" alt="bai yu 支付宝">
+        <p>支付宝</p>
+      </div>
+
+  </div>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/java/" rel="tag"># -java</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/01/26/%E8%A7%A3%E9%94%81if-else%E7%9A%84%E5%8F%A6%E4%B8%80%E7%A7%8D%E5%A7%BF%E5%8A%BF%EF%BC%9AMap-%E5%87%BD%E6%95%B0%E5%BC%8F%E6%8E%A5%E5%8F%A3%E6%96%B9%E6%B3%95-md/" rel="prev" title="解锁if-else的另一种姿势：Map+函数式接口方法.md">
+      <i class="fa fa-chevron-left"></i> 解锁if-else的另一种姿势：Map+函数式接口方法.md
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        <div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">bai yu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">100k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:31</span>
+</div>
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">浙xxxx </a>
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              Counter('post', '/classes/Counter', { title, url, time: 1 })
+                .then(response => response.json())
+                .then(() => {
+                  leancloudSelector(url).innerText = 1;
+                })
+                .catch(error => {
+                  console.error('Failed to create', error);
+                });
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"IiFg7l57TOdHscSMUCMeUlw2-gzGzoHsz","app_key":"qpwIlyhFnXE257b3hxaADe4I","server_url":null,"security":false};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://baiyu128.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://baiyu128.github.io/2022/03/02/Java%E5%BE%AE%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6JMH/";
+    this.page.identifier = "2022/03/02/Java微基准测试框架JMH/";
+    this.page.title = "Java微基准测试框架JMH";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://baiyu128.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
