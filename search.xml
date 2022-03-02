@@ -1797,7 +1797,7 @@
 <p>Map+函数式接口通过Map.get(key)来代替 if-else的业务分派，能够避免策略模式带来的类增多、难以俯视整个业务逻辑的问题。</p>
 ]]></content>
       <tags>
-        <tag>-java</tag>
+        <tag>java</tag>
       </tags>
   </entry>
   <entry>
@@ -1891,7 +1891,7 @@
 <p>我在自己的笔记本电脑上跑下来的结果，总数在10000时并行算法不如串行算法， 总数达到100000时并行算法开始和串行算法接近，总数达到1000000时并行算法所耗时间约是串行算法的一半左右。<br><img src="https://static01.imgkr.com/temp/e5d15610f4124527b79633b9bdbbfaad.png" alt="jmh"></p>
 ]]></content>
       <tags>
-        <tag>-java</tag>
+        <tag>java</tag>
       </tags>
   </entry>
   <entry>
