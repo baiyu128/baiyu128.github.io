@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"baiyu128.github.io","root":"/","scheme":"Gemini","version":"8.0.0-rc.3","exturl":false,"sidebar":{"position":"left","display":"always","padding":18,"offset":12},"copycode":false,"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="前言本文记录一下我是如何使用Gateway搭建网关服务及实现动态路由的，帮助大家学习如何快速搭建一个网关服务，了解路由相关配置，鉴权的流程及业务处理，有兴趣的一定看到最后，非常适合没接触过网关服务的同学当作入门教程。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="快速搭建一个网关服务，动态路由、鉴权">
+<meta property="og:url" content="https://baiyu128.github.io/2022/03/02/%E5%BF%AB%E9%80%9F%E6%90%AD%E5%BB%BA%E4%B8%80%E4%B8%AA%E7%BD%91%E5%85%B3%E6%9C%8D%E5%8A%A1%EF%BC%8C%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%E3%80%81%E9%89%B4%E6%9D%83/index.html">
+<meta property="og:site_name" content="BaiYu">
+<meta property="og:description" content="前言本文记录一下我是如何使用Gateway搭建网关服务及实现动态路由的，帮助大家学习如何快速搭建一个网关服务，了解路由相关配置，鉴权的流程及业务处理，有兴趣的一定看到最后，非常适合没接触过网关服务的同学当作入门教程。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://mmbiz.qpic.cn/mmbiz_png/sTnayibHfVq6bLy8aFDuHbml5ne6ru6KwaiaL4WA9skFVK0prib0jBGDo7qaBhsQ6GeAbJFs9JDUtjs3yiaRc5jVhg/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1">
+<meta property="og:image" content="https://static01.imgkr.com/temp/4b3a20cde03440299941b4a9270bafc6.jpg">
+<meta property="og:image" content="https://static01.imgkr.com/temp/212d0d13ae944aeba8c08f3c6fd17c56.jpg">
+<meta property="og:image" content="https://static01.imgkr.com/temp/9e6eaadc95ed4689819140e6affeb8b9.jpg">
+<meta property="article:published_time" content="2022-03-02T05:44:10.000Z">
+<meta property="article:modified_time" content="2022-03-02T05:50:14.175Z">
+<meta property="article:author" content="bai yu">
+<meta property="article:tag" content="-java -gateway">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://mmbiz.qpic.cn/mmbiz_png/sTnayibHfVq6bLy8aFDuHbml5ne6ru6KwaiaL4WA9skFVK0prib0jBGDo7qaBhsQ6GeAbJFs9JDUtjs3yiaRc5jVhg/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1">
+
+<link rel="canonical" href="https://baiyu128.github.io/2022/03/02/%E5%BF%AB%E9%80%9F%E6%90%AD%E5%BB%BA%E4%B8%80%E4%B8%AA%E7%BD%91%E5%85%B3%E6%9C%8D%E5%8A%A1%EF%BC%8C%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%E3%80%81%E9%89%B4%E6%9D%83/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>快速搭建一个网关服务，动态路由、鉴权 | BaiYu</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?828ef564b6cd127ce936729bfd05afaf";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  body { margin-top: 2rem; }
+
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before, .use-motion .logo-line-after {
+    transform: scaleX(1);
+  }
+
+  .search-pop-overlay, .sidebar-nav { display: none; }
+  .sidebar-panel { display: block; }
+  </style>
+  <div id="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="BaiYu" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <main class="main">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+        <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+        <span class="toggle-line toggle-line-first"></span>
+        <span class="toggle-line toggle-line-middle"></span>
+        <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line-before"></i>
+      <h1 class="site-title">BaiYu</h1>
+      <i class="logo-line-after"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">baiyu`s blog</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+</nav>
+
+
+
+  <div class="search-pop-overlay">
+    <div class="popup search-popup">
+        <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+    </div>
+  </div>
+
+</div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#前言"><span class="nav-number">1.</span> <span class="nav-text">前言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#搭建服务"><span class="nav-number">2.</span> <span class="nav-text">搭建服务</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#框架"><span class="nav-number">2.0.1.</span> <span class="nav-text">框架</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#路由配置"><span class="nav-number">2.0.2.</span> <span class="nav-text">路由配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#解读配置"><span class="nav-number">2.0.3.</span> <span class="nav-text">解读配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#动态路由"><span class="nav-number">2.0.4.</span> <span class="nav-text">动态路由</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Nacos配置"><span class="nav-number">2.0.5.</span> <span class="nav-text">Nacos配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#比对一下json配置与yaml配置"><span class="nav-number">2.0.6.</span> <span class="nav-text">比对一下json配置与yaml配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#代码实现"><span class="nav-number">2.0.7.</span> <span class="nav-text">代码实现</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#过滤器"><span class="nav-number">2.0.8.</span> <span class="nav-text">过滤器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#鉴权过滤器"><span class="nav-number">2.0.9.</span> <span class="nav-text">鉴权过滤器</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#代码实现-1"><span class="nav-number">2.0.10.</span> <span class="nav-text">代码实现</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#总结"><span class="nav-number">3.</span> <span class="nav-text">总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="bai yu"
+      src="/uploads/avatar.png">
+  <p class="site-author-name" itemprop="name">bai yu</p>
+  <div class="site-description" itemprop="description">Don`t stop, keep moving</div>
+</div>
+
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">19</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">17</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/baiyu128" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;baiyu128" rel="noopener" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:baixixi187@163.com" title="E-Mail → mailto:baixixi187@163.com" rel="noopener" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title"><i class="fa fa-globe fa-fw"></i>
+      Links
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="http://baixixi.xyz/" title="http:&#x2F;&#x2F;baixixi.xyz" rel="noopener" target="_blank">Blog</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </header>
+
+      
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+      <div class="main-inner">
+        
+
+        <div class="content post posts-expand">
+          
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://baiyu128.github.io/2022/03/02/%E5%BF%AB%E9%80%9F%E6%90%AD%E5%BB%BA%E4%B8%80%E4%B8%AA%E7%BD%91%E5%85%B3%E6%9C%8D%E5%8A%A1%EF%BC%8C%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%E3%80%81%E9%89%B4%E6%9D%83/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/uploads/avatar.png">
+      <meta itemprop="name" content="bai yu">
+      <meta itemprop="description" content="Don`t stop, keep moving">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="BaiYu">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          快速搭建一个网关服务，动态路由、鉴权
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-03-02 13:44:10 / 修改时间：13:50:14" itemprop="dateCreated datePublished" datetime="2022-03-02T13:44:10+08:00">2022-03-02</time>
+            </span>
+
+          
+            <span id="/2022/03/02/%E5%BF%AB%E9%80%9F%E6%90%AD%E5%BB%BA%E4%B8%80%E4%B8%AA%E7%BD%91%E5%85%B3%E6%9C%8D%E5%8A%A1%EF%BC%8C%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%E3%80%81%E9%89%B4%E6%9D%83/" class="post-meta-item leancloud_visitors" data-flag-title="快速搭建一个网关服务，动态路由、鉴权" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="far fa-comment"></i>
+      </span>
+      <span class="post-meta-item-text">Disqus：</span>
+    
+    <a title="disqus" href="/2022/03/02/%E5%BF%AB%E9%80%9F%E6%90%AD%E5%BB%BA%E4%B8%80%E4%B8%AA%E7%BD%91%E5%85%B3%E6%9C%8D%E5%8A%A1%EF%BC%8C%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%E3%80%81%E9%89%B4%E6%9D%83/#disqus_thread" itemprop="discussionUrl">
+      <span class="post-comments-count disqus-comment-count" data-disqus-identifier="2022/03/02/快速搭建一个网关服务，动态路由、鉴权/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  <br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>7.4k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>7 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>本文记录一下我是如何使用Gateway搭建网关服务及实现动态路由的，帮助大家学习如何快速搭建一个网关服务，了解路由相关配置，鉴权的流程及业务处理，有兴趣的一定看到最后，非常适合没接触过网关服务的同学当作入门教程。</p>
+<a id="more"></a>
+
+<h2 id="搭建服务"><a href="#搭建服务" class="headerlink" title="搭建服务"></a>搭建服务</h2><h4 id="框架"><a href="#框架" class="headerlink" title="框架"></a>框架</h4><p>SpringBoot 2.1</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">&lt;parent&gt;</span><br><span class="line">   &lt;groupId&gt;org.springframework.boot&lt;&#x2F;groupId&gt;</span><br><span class="line">   &lt;artifactId&gt;spring-boot-starter-parent&lt;&#x2F;artifactId&gt;</span><br><span class="line">   &lt;version&gt;2.1.0.RELEASE&lt;&#x2F;version&gt;</span><br><span class="line">&lt;&#x2F;parent&gt;</span><br></pre></td></tr></table></figure>
+
+<p>Spring-cloud-gateway-core</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">   &lt;groupId&gt;org.springframework.cloud&lt;&#x2F;groupId&gt;</span><br><span class="line">   &lt;artifactId&gt;spring-cloud-gateway-core&lt;&#x2F;artifactId&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<p>common-lang3</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">   &lt;groupId&gt;org.apache.commons&lt;&#x2F;groupId&gt;</span><br><span class="line">   &lt;artifactId&gt;commons-lang3&lt;&#x2F;artifactId&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br></pre></td></tr></table></figure>
+
+<h4 id="路由配置"><a href="#路由配置" class="headerlink" title="路由配置"></a>路由配置</h4><p>网关作为请求统一入口，路由就相当于是每个业务系统的入口，通过路由规则则可以匹配到对应微服务的入口，将请求命中到对应的业务系统中</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">server:</span><br><span class="line">  port: 8080</span><br><span class="line"></span><br><span class="line">spring:</span><br><span class="line">  cloud:</span><br><span class="line">    gateway:</span><br><span class="line">      enabled: true</span><br><span class="line">      routes:</span><br><span class="line">      - id: demo-server</span><br><span class="line">        uri: http:&#x2F;&#x2F;localhost:8081</span><br><span class="line">        predicates:</span><br><span class="line">        - Path&#x3D;&#x2F;demo-server&#x2F;**</span><br><span class="line">        filters:</span><br><span class="line">          - StripPrefix&#x3D; 1</span><br></pre></td></tr></table></figure>
+
+<p>routes</p>
+<p><img src="https://mmbiz.qpic.cn/mmbiz_png/sTnayibHfVq6bLy8aFDuHbml5ne6ru6KwaiaL4WA9skFVK0prib0jBGDo7qaBhsQ6GeAbJFs9JDUtjs3yiaRc5jVhg/640?wx_fmt=png&wxfrom=5&wx_lazy=1&wx_co=1" alt="图片"></p>
+<p>图片</p>
+<h4 id="解读配置"><a href="#解读配置" class="headerlink" title="解读配置"></a>解读配置</h4><ul>
+<li>现在有一个服务demo-server部署在本机，地址和端口为<code>127.0.0.1:8081</code>，所以路由配置uri为<code>http://localhost:8081</code></li>
+<li>使用网关服务路由到此服务，<code>predicates -Path=/demo-server/**</code>,网关服务的端口为8080，启动网关服务，访问<code>localhost:8080/demo-server</code>,路由断言就会将请求路由到demo-server</li>
+<li>直接访问demo-server的接口<code>localhost:8081/api/test</code>,通过网关的访问地址则为<code>localhost:8080/demo-server/api/test,predicates</code>配置将请求断言到此路由，<code>filters-StripPrefix=1</code>代表将地址中/后的第一个截取，所以demo-server就截取掉了</li>
+</ul>
+<p>使用gateway通过配置文件即可完成路由的配置，非常方便，我们只要充分的了解配置项的含义及规则就可以了;但是这些配置如果要修改则需要重启服务，重启网关服务会导致整个系统不可用，这一点是无法接受的，下面介绍如何通过Nacos实现动态路由</p>
+<h4 id="动态路由"><a href="#动态路由" class="headerlink" title="动态路由"></a>动态路由</h4><p>使用nacos结合gateway-server实现动态路由，我们需要先部署一个nacos服务，可以使用docker部署或下载源码在本地启动,具体操作可以参考官方文档即可</p>
+<h4 id="Nacos配置"><a href="#Nacos配置" class="headerlink" title="Nacos配置"></a>Nacos配置</h4><p><img src="https://static01.imgkr.com/temp/4b3a20cde03440299941b4a9270bafc6.jpg" alt="图片"></p>
+<p>groupId: 使用网关服务名称即可</p>
+<p>dataId: routes</p>
+<p>配置格式：json</p>
+<figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">[&#123;</span><br><span class="line">      <span class="attr">"id"</span>: <span class="string">"xxx-server"</span>,</span><br><span class="line">      "order": 1, #优先级</span><br><span class="line">      "predicates": [&#123; #路由断言</span><br><span class="line">          "args": &#123;</span><br><span class="line">              "pattern": "/xxx-server/**"</span><br><span class="line">          &#125;,</span><br><span class="line">          "name": "Path"</span><br><span class="line">      &#125;],</span><br><span class="line">      "filters":[&#123; #过滤规则</span><br><span class="line">          "args": &#123;</span><br><span class="line">              "parts": 0 #k8s服务内部访问容器为http://xxx-server/xxx-server的话,配置0即可</span><br><span class="line">          &#125;,</span><br><span class="line">          "name": "StripPrefix" #截取的开始索引</span><br><span class="line">      &#125;],</span><br><span class="line">      "uri": "http://localhost:8080/xxx-server" #目标地址</span><br><span class="line">  &#125;]</span><br></pre></td></tr></table></figure>
+
+<p>json格式配置项与yaml中对应，需要了解配置在json中的写法</p>
+<h4 id="比对一下json配置与yaml配置"><a href="#比对一下json配置与yaml配置" class="headerlink" title="比对一下json配置与yaml配置"></a>比对一下json配置与yaml配置</h4><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    <span class="attr">"id"</span>:<span class="string">"demo-server"</span>,</span><br><span class="line">    <span class="attr">"predicates"</span>:[</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="attr">"args"</span>:&#123;</span><br><span class="line">                <span class="attr">"pattern"</span>:<span class="string">"/demo-server/**"</span></span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="attr">"name"</span>:<span class="string">"Path"</span></span><br><span class="line">        &#125;</span><br><span class="line">    ],</span><br><span class="line">    <span class="attr">"filters"</span>:[</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="attr">"args"</span>:&#123;</span><br><span class="line">                <span class="attr">"parts"</span>:<span class="number">1</span></span><br><span class="line">            &#125;,</span><br><span class="line">            <span class="attr">"name"</span>:<span class="string">"StripPrefix"</span></span><br><span class="line">        &#125;</span><br><span class="line">    ],</span><br><span class="line">    <span class="attr">"uri"</span>:<span class="string">"http://localhost:8081"</span></span><br><span class="line">&#125;</span><br><span class="line">spring:</span><br><span class="line">  cloud:</span><br><span class="line">    gateway:</span><br><span class="line">      enabled: true</span><br><span class="line">      routes:</span><br><span class="line">      - id: demo-server</span><br><span class="line">        uri: http://localhost:8081</span><br><span class="line">        predicates:</span><br><span class="line">        - Path=/demo-server/**</span><br><span class="line">        filters:</span><br><span class="line">          - StripPrefix= 1</span><br></pre></td></tr></table></figure>
+
+<h4 id="代码实现"><a href="#代码实现" class="headerlink" title="代码实现"></a>代码实现</h4><p>Nacos实现动态路由的方式核心就是通过Nacos配置监听，配置发生改变后执行网关相关api创建路由</p>
+<p><img src="https://static01.imgkr.com/temp/212d0d13ae944aeba8c08f3c6fd17c56.jpg" alt="ll"></p>
+<p>图片</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br></pre></td><td class="code"><pre><span class="line">@Component</span><br><span class="line">public class NacosDynamicRouteService implements ApplicationEventPublisherAware &#123;</span><br><span class="line"></span><br><span class="line">    private static final Logger LOGGER &#x3D; LoggerFactory.getLogger(NacosDynamicRouteService.class);</span><br><span class="line"></span><br><span class="line">    @Autowired</span><br><span class="line">    private RouteDefinitionWriter routeDefinitionWriter;</span><br><span class="line"></span><br><span class="line">    private ApplicationEventPublisher applicationEventPublisher;</span><br><span class="line"></span><br><span class="line">    &#x2F;** 路由id *&#x2F;</span><br><span class="line">    private static List&lt;String&gt; routeIds &#x3D; Lists.newArrayList();</span><br><span class="line"></span><br><span class="line">    &#x2F;**</span><br><span class="line">     * 监听nacos路由配置，动态改变路由</span><br><span class="line">     * @param configInfo</span><br><span class="line">     *&#x2F;</span><br><span class="line">    @NacosConfigListener(dataId &#x3D; &quot;routes&quot;, groupId &#x3D; &quot;gateway-server&quot;)</span><br><span class="line">    public void routeConfigListener(String configInfo) &#123;</span><br><span class="line">        clearRoute();</span><br><span class="line">        try &#123;</span><br><span class="line">            List&lt;RouteDefinition&gt; gatewayRouteDefinitions &#x3D; JSON.parseArray(configInfo, RouteDefinition.class);</span><br><span class="line">            for (RouteDefinition routeDefinition : gatewayRouteDefinitions) &#123;</span><br><span class="line">                addRoute(routeDefinition);</span><br><span class="line">            &#125;</span><br><span class="line">            publish();</span><br><span class="line">            LOGGER.info(&quot;Dynamic Routing Publish Success&quot;);</span><br><span class="line">        &#125; catch (Exception e) &#123;</span><br><span class="line">            LOGGER.error(e.getMessage(), e);</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    &#x2F;**</span><br><span class="line">     * 清空路由</span><br><span class="line">     *&#x2F;</span><br><span class="line">    private void clearRoute() &#123;</span><br><span class="line">        for (String id : routeIds) &#123;</span><br><span class="line">            routeDefinitionWriter.delete(Mono.just(id)).subscribe();</span><br><span class="line">        &#125;</span><br><span class="line">        routeIds.clear();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    @Override</span><br><span class="line">    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) &#123;</span><br><span class="line">        this.applicationEventPublisher &#x3D; applicationEventPublisher;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    &#x2F;**</span><br><span class="line">     * 添加路由</span><br><span class="line">     * </span><br><span class="line">     * @param definition</span><br><span class="line">     *&#x2F;</span><br><span class="line">    private void addRoute(RouteDefinition definition) &#123;</span><br><span class="line">        try &#123;</span><br><span class="line">            routeDefinitionWriter.save(Mono.just(definition)).subscribe();</span><br><span class="line">            routeIds.add(definition.getId());</span><br><span class="line">        &#125; catch (Exception e) &#123;</span><br><span class="line">            LOGGER.error(e.getMessage(), e);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    &#x2F;**</span><br><span class="line">     * 发布路由、使路由生效</span><br><span class="line">     *&#x2F;</span><br><span class="line">    private void publish() &#123;</span><br><span class="line">        this.applicationEventPublisher.publishEvent(new RefreshRoutesEvent(this.routeDefinitionWriter));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="过滤器"><a href="#过滤器" class="headerlink" title="过滤器"></a>过滤器</h4><p>gateway提供GlobalFilter及Ordered两个接口用来定义过滤器，我们自定义过滤器只需要实现这个两个接口即可</p>
+<ul>
+<li><code>GlobalFilter filter()</code> 实现过滤器业务</li>
+<li><code>Ordered getOrder()</code> 定义过滤器执行顺序</li>
+</ul>
+<p>通常一个网关服务的过滤主要包含 鉴权（是否登录、是否黑名单、是否免登录接口…） 限流（ip限流等等）功能，我们今天简单介绍鉴权过滤器的流程实现</p>
+<h4 id="鉴权过滤器"><a href="#鉴权过滤器" class="headerlink" title="鉴权过滤器"></a>鉴权过滤器</h4><p>需要实现鉴权过滤器，我们先得了解登录及鉴权流程，如下图所示</p>
+<p><img src="https://static01.imgkr.com/temp/9e6eaadc95ed4689819140e6affeb8b9.jpg" alt="ee"></p>
+<p>图片</p>
+<p>由图可知，我们鉴权过滤核心就是验证token是否有效，所以我们网关服务需要与业务系统在同一个redis库，先给网关添加redis依赖及配置</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">&lt;dependency&gt;</span><br><span class="line">    &lt;groupId&gt;org.springframework.boot&lt;&#x2F;groupId&gt;</span><br><span class="line">    &lt;artifactId&gt;spring-boot-starter-data-redis-reactive&lt;&#x2F;artifactId&gt;</span><br><span class="line">&lt;&#x2F;dependency&gt;</span><br><span class="line">spring:</span><br><span class="line">  redis:</span><br><span class="line">    host: redis-server</span><br><span class="line">    port: 6379</span><br><span class="line">    password:</span><br><span class="line">    database: 0</span><br></pre></td></tr></table></figure>
+
+<h4 id="代码实现-1"><a href="#代码实现-1" class="headerlink" title="代码实现"></a>代码实现</h4><ol>
+<li>定义过滤器AuthFilter</li>
+<li>获取请求对象 从请求头或参数或cookie中获取token(支持多种方式传token对于客户端更加友好，比如部分web下载请求会新建一个页面，在请求头中传token处理起来比较麻烦)</li>
+<li>没有token,返回401</li>
+<li>有token，查询redis是否有效</li>
+<li>无效则返回401，有效则完成验证放行</li>
+<li>重置token过期时间、添加内部请求头信息方便业务系统权限处理</li>
+</ol>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Component</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">AuthFilter</span> <span class="keyword">implements</span> <span class="title">GlobalFilter</span>, <span class="title">Ordered</span> </span>&#123;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Autowired</span></span><br><span class="line">    <span class="keyword">private</span> RedisTemplate&lt;String, String&gt; redisTemplate;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> String TOKEN_HEADER_KEY = <span class="string">"auth_token"</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> Mono&lt;Void&gt; <span class="title">filter</span><span class="params">(ServerWebExchange exchange, GatewayFilterChain chain)</span> </span>&#123;</span><br><span class="line">        <span class="comment">// 1.获取请求对象</span></span><br><span class="line">        ServerHttpRequest request = exchange.getRequest();</span><br><span class="line">        <span class="comment">// 2.获取token</span></span><br><span class="line">        String token = getToken(request);</span><br><span class="line">        ServerHttpResponse response = exchange.getResponse();</span><br><span class="line">        <span class="keyword">if</span> (StringUtils.isBlank(token)) &#123;</span><br><span class="line">            <span class="comment">// 3.token为空 返回401</span></span><br><span class="line">            response.setStatusCode(HttpStatus.UNAUTHORIZED);</span><br><span class="line">            <span class="keyword">return</span> response.setComplete();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// 4.验证token是否有效</span></span><br><span class="line">        String userId = getUserIdByToken(token);</span><br><span class="line">        <span class="keyword">if</span> (StringUtils.isBlank(userId)) &#123;</span><br><span class="line">            <span class="comment">// 5.token无效 返回401</span></span><br><span class="line">            response.setStatusCode(HttpStatus.UNAUTHORIZED);</span><br><span class="line">            <span class="keyword">return</span> response.setComplete();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">// token有效，后续业务处理</span></span><br><span class="line">        <span class="comment">// 从写请求头，方便业务系统从请求头获取用户id进行权限相关处理</span></span><br><span class="line">        ServerHttpRequest.Builder builder = exchange.getRequest().mutate();</span><br><span class="line">        request = builder.header(<span class="string">"user_id"</span>, userId).build();</span><br><span class="line">        <span class="comment">// 延长缓存过期时间-token缓存用户如果一直在操作就会一直重置过期</span></span><br><span class="line">        <span class="comment">// 这样避免用户操作过程中突然过期影响业务操作及体验，只有用户操作间隔时间大于缓存过期时间才会过期</span></span><br><span class="line">        resetTokenExpirationTime(token, userId);</span><br><span class="line">        <span class="comment">// 完成验证</span></span><br><span class="line">        <span class="keyword">return</span> chain.filter(exchange);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">int</span> <span class="title">getOrder</span><span class="params">()</span> </span>&#123;</span><br><span class="line">        <span class="comment">// 优先级 越小越优先</span></span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 从redis中获取用户id</span></span><br><span class="line"><span class="comment">     * 在登录操作时候 登陆成功会生成一个token, redis得key为auth_token:token 值为用户id</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> token</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> String <span class="title">getUserIdByToken</span><span class="params">(String token)</span> </span>&#123;</span><br><span class="line">        String redisKey = String.join(<span class="string">":"</span>, <span class="string">"auth_token"</span>, token);</span><br><span class="line">        <span class="keyword">return</span> redisTemplate.opsForValue().get(redisKey);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 重置token过期时间</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> token</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> userId</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">resetTokenExpirationTime</span><span class="params">(String token, String userId)</span> </span>&#123;</span><br><span class="line">        String redisKey = String.join(<span class="string">":"</span>, <span class="string">"auth_token"</span>, token);</span><br><span class="line">        redisTemplate.opsForValue().set(redisKey, userId, <span class="number">2</span>, TimeUnit.HOURS);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 获取token</span></span><br><span class="line"><span class="comment">     *</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@param</span> request</span></span><br><span class="line"><span class="comment">     * <span class="doctag">@return</span></span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> String <span class="title">getToken</span><span class="params">(ServerHttpRequest request)</span> </span>&#123;</span><br><span class="line">        HttpHeaders headers = request.getHeaders();</span><br><span class="line">        <span class="comment">// 从请求头获取token</span></span><br><span class="line">        String token = headers.getFirst(TOKEN_HEADER_KEY);</span><br><span class="line">        <span class="keyword">if</span> (StringUtils.isBlank(token)) &#123;</span><br><span class="line">            <span class="comment">// 请求头无token则从url获取token</span></span><br><span class="line">            token = request.getQueryParams().getFirst(TOKEN_HEADER_KEY);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">if</span> (StringUtils.isBlank(token)) &#123;</span><br><span class="line">            <span class="comment">// 请求头和url都没有token则从cookies获取</span></span><br><span class="line">            HttpCookie cookie = request.getCookies().getFirst(TOKEN_HEADER_KEY);</span><br><span class="line">            <span class="keyword">if</span> (cookie != <span class="keyword">null</span>) &#123;</span><br><span class="line">                token = cookie.getValue();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> token;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Gateway通过配置项可以实现路由功能，整合Nacos及配置监听可以实现动态路由，实现GlobalFilter, Ordered两个接口可以快速实现一个过滤器，文中也详细的介绍了登录后的请求鉴权流程。</p>
+
+    </div>
+
+    
+    
+    
+        <div class="reward-container">
+  <div>坚持原创技术分享，您的支持将鼓励我继续创作！</div>
+  <button onclick="var qr = document.getElementById('qr'); qr.style.display = (qr.style.display === 'none') ? 'block' : 'none';">
+    赞赏
+  </button>
+  <div id="qr" style="display: none;">
+      
+      <div style="display: inline-block;">
+        <img src="/images/wechatpay.png" alt="bai yu 微信支付">
+        <p>微信支付</p>
+      </div>
+      
+      <div style="display: inline-block;">
+        <img src="/images/alipay.png" alt="bai yu 支付宝">
+        <p>支付宝</p>
+      </div>
+
+  </div>
+</div>
+
+        
+
+  <div class="followme">
+    <p>欢迎关注我的其它发布渠道</p>
+
+    <div class="social-list">
+
+        <div class="social-item">
+          <a target="_blank" class="social-link" href="/atom.xml">
+            <span class="icon">
+              <i class="fa fa-rss"></i>
+            </span>
+
+            <span class="label">RSS</span>
+          </a>
+        </div>
+    </div>
+  </div>
+
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/java-gateway/" rel="tag"># -java -gateway</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/03/02/Java%E5%BE%AE%E5%9F%BA%E5%87%86%E6%B5%8B%E8%AF%95%E6%A1%86%E6%9E%B6JMH/" rel="prev" title="Java微基准测试框架JMH">
+      <i class="fa fa-chevron-left"></i> Java微基准测试框架JMH
+    </a></div>
+      <div class="post-nav-item"></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+        </div>
+        
+    
+  <div class="comments">
+    <div id="disqus_thread">
+      <noscript>Please enable JavaScript to view the comments powered by Disqus.</noscript>
+    </div>
+  </div>
+  
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        <div class="copyright">
+  
+  &copy; 2020 – 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">bai yu</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">108k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">1:38</span>
+</div>
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">浙xxxx </a>
+  </div>
+
+        
+
+
+
+
+
+
+<script>
+  (function() {
+    function leancloudSelector(url) {
+      url = encodeURI(url);
+      return document.getElementById(url).querySelector('.leancloud-visitors-count');
+    }
+
+    function addCount(Counter) {
+      var visitors = document.querySelector('.leancloud_visitors');
+      var url = decodeURI(visitors.id);
+      var title = visitors.dataset.flagTitle;
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          if (results.length > 0) {
+            var counter = results[0];
+            leancloudSelector(url).innerText = counter.time + 1;
+            Counter('put', '/classes/Counter/' + counter.objectId, { time: { '__op': 'Increment', 'amount': 1 } })
+              .catch(error => {
+                console.error('Failed to save visitor count', error);
+              });
+          } else {
+              Counter('post', '/classes/Counter', { title, url, time: 1 })
+                .then(response => response.json())
+                .then(() => {
+                  leancloudSelector(url).innerText = 1;
+                })
+                .catch(error => {
+                  console.error('Failed to create', error);
+                });
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    function showTime(Counter) {
+      var visitors = document.querySelectorAll('.leancloud_visitors');
+      var entries = [...visitors].map(element => {
+        return decodeURI(element.id);
+      });
+
+      Counter('get', '/classes/Counter?where=' + encodeURIComponent(JSON.stringify({ url: { '$in': entries } })))
+        .then(response => response.json())
+        .then(({ results }) => {
+          for (let url of entries) {
+            let target = results.find(item => item.url === url);
+            leancloudSelector(url).innerText = target ? target.time : 0;
+          }
+        })
+        .catch(error => {
+          console.error('LeanCloud Counter Error', error);
+        });
+    }
+
+    let { app_id, app_key, server_url } = {"enable":true,"app_id":"IiFg7l57TOdHscSMUCMeUlw2-gzGzoHsz","app_key":"qpwIlyhFnXE257b3hxaADe4I","server_url":null,"security":false};
+    function fetchData(api_server) {
+      var Counter = (method, url, data) => {
+        return fetch(`${api_server}/1.1${url}`, {
+          method,
+          headers: {
+            'X-LC-Id'     : app_id,
+            'X-LC-Key'    : app_key,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+      };
+      if (CONFIG.page.isPost) {
+        if (CONFIG.hostname !== location.hostname) return;
+        addCount(Counter);
+      } else if (document.querySelectorAll('.post-title-link').length >= 1) {
+        showTime(Counter);
+      }
+    }
+
+    let api_server = app_id.slice(-9) !== '-MdYXbMMI' ? server_url : `https://${app_id.slice(0, 8).toLowerCase()}.api.lncldglobal.com`;
+
+    if (api_server) {
+      fetchData(api_server);
+    } else {
+      fetch('https://app-router.leancloud.cn/2/route?appId=' + app_id)
+        .then(response => response.json())
+        .then(({ api_server }) => {
+          fetchData('https://' + api_server);
+        });
+    }
+  })();
+</script>
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+  
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+<script>
+  function loadCount() {
+    var d = document, s = d.createElement('script');
+    s.src = 'https://baiyu128.disqus.com/count.js';
+    s.id = 'dsq-count-scr';
+    (d.head || d.body).appendChild(s);
+  }
+  // defer loading until the whole page loading is completed
+  window.addEventListener('load', loadCount, false);
+</script>
+<script>
+  var disqus_config = function() {
+    this.page.url = "https://baiyu128.github.io/2022/03/02/%E5%BF%AB%E9%80%9F%E6%90%AD%E5%BB%BA%E4%B8%80%E4%B8%AA%E7%BD%91%E5%85%B3%E6%9C%8D%E5%8A%A1%EF%BC%8C%E5%8A%A8%E6%80%81%E8%B7%AF%E7%94%B1%E3%80%81%E9%89%B4%E6%9D%83/";
+    this.page.identifier = "2022/03/02/快速搭建一个网关服务，动态路由、鉴权/";
+    this.page.title = "快速搭建一个网关服务，动态路由、鉴权";
+    };
+  NexT.utils.loadComments(document.querySelector('#disqus_thread'), () => {
+    if (window.DISQUS) {
+      DISQUS.reset({
+        reload: true,
+        config: disqus_config
+      });
+    } else {
+      var d = document, s = d.createElement('script');
+      s.src = 'https://baiyu128.disqus.com/embed.js';
+      s.setAttribute('data-timestamp', '' + +new Date());
+      (d.head || d.body).appendChild(s);
+    }
+  });
+</script>
+
+</body>
+</html>
